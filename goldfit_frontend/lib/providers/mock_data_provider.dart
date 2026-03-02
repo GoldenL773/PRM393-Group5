@@ -274,6 +274,75 @@ class MockDataProvider {
       'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple'
     ];
     
+    // Map clothing types to asset folders and available images
+    final assetMapping = {
+      ClothingType.tops: {
+        'folder': 'shirt',
+        'images': [
+          '00143901-a14c-4600-960f-7747b4a3a8cd.jpg',
+          '0e7453e0-023c-4c34-b837-e6349846b112.jpg',
+          '118fb0e8-2783-4086-b81a-d2a332fbb4f2.jpg',
+          '1d2e0956-07d7-41d8-9286-ea98d1d32dbd.jpg',
+          '235230d6-8a23-4981-bc43-5e62c0570f44.jpg',
+          '29f8cf36-3ae6-4558-9f42-82f330c15b3d.jpg',
+          '309ead9a-2672-40b7-8a09-ab5fc6abccc0.jpg',
+          '31315e30-2742-4f7f-8168-10a0645d2163.jpg',
+        ],
+      },
+      ClothingType.bottoms: {
+        'folder': 'pants',
+        'images': [
+          '012d1ca9-baaf-4b01-8b60-955f3408b1b7.jpg',
+          '0257eb81-f3d3-4704-8299-8b6ab20f1ed4.jpg',
+          '081b5ec1-13a6-43c8-991f-9ad2020f646a.jpg',
+          '0d0bb91d-01d7-45df-827d-da96bbc44b15.jpg',
+          '17bebe65-17cc-42b3-885f-4e6c64a16f26.jpg',
+          '19ff0603-c52b-4d27-a9b9-cfd9da5e9f35.jpg',
+          '1f3fe0f5-4724-43f8-bfce-6e22d1f1f5ba.jpg',
+          '24eb8ba7-065a-4493-8fa6-b3afa89751f6.jpg',
+        ],
+      },
+      ClothingType.outerwear: {
+        'folder': 'outwear',
+        'images': [
+          '0ad8629f-2e9f-4591-a661-7489d6d49737.jpg',
+          '0c7412e7-81eb-40b7-be64-ce9782103529.jpg',
+          '161e35df-93d4-4b30-817e-de03c8c1d55a.jpg',
+          '2160a577-406a-4812-ada2-2a3cb30c2ba8.jpg',
+          '2c1c3c2a-5b22-4133-9509-1877d6a106a0.jpg',
+          '2ea87992-6eb5-46a2-9ac6-e4ac727179aa.jpg',
+          '3108045a-9975-4ad8-b5ed-e0a065e5d397.jpg',
+          '311ee106-2f12-4b1d-83fb-b3e597607cca.jpg',
+        ],
+      },
+      ClothingType.shoes: {
+        'folder': 'shoes',
+        'images': [
+          '24535295-abe3-4613-91f6-a7fe87954662.jpg',
+          '253dc2b9-f49e-4f55-9917-c9005c29bbd9.jpg',
+          '32662cf1-4440-459c-b55c-0ba39b71f768.jpg',
+          '41302a0b-5faf-48a9-9b40-33885d28a7a6.jpg',
+          '454fd50e-89eb-412b-b16c-17f1730ed9b5.jpg',
+          '4eba049d-e813-4af9-913a-53b6877cdda2.jpg',
+          '5bb088ac-ea91-419b-851e-1b04b7ce57db.jpg',
+          '5e577f40-dd22-4b40-9827-ce6cae5ac3fd.jpg',
+        ],
+      },
+      ClothingType.accessories: {
+        'folder': 'hat',
+        'images': [
+          '014b2a1b-c5a0-469b-b115-bc02b2001db5.jpg',
+          '4f04a31f-6589-4fe2-8a95-a42f6a164bd9.jpg',
+          '50cf0bbc-5a25-4df9-94fe-3323d2b61bff.jpg',
+          '7b4ca4a5-fd04-4a96-9f40-1a982ff6cb8b.jpg',
+          '7bfaa9c2-d467-4627-9ff4-233075aa65d4.jpg',
+          '7c28df10-5bfc-4deb-b57f-6c292f07b98b.jpg',
+          '86a3f65f-8c08-48b6-a783-0e38ffa006ef.jpg',
+          '8f809fea-1f7d-4695-be36-a061bd77c170.jpg',
+        ],
+      },
+    };
+    
     // Define item templates for each category with realistic names
     final templates = {
       ClothingType.tops: [
@@ -305,10 +374,10 @@ class MockDataProvider {
     for (var type in ClothingType.values) {
       final categoryTemplates = templates[type]!;
       final categoryCount = itemsPerCategory + (type.index < extraItems ? 1 : 0);
+      final assetInfo = assetMapping[type];
       
       for (var i = 0; i < categoryCount; i++) {
         final color = colors[random.nextInt(colors.length)];
-        final template = categoryTemplates[random.nextInt(categoryTemplates.length)];
         
         // Generate season combinations
         final seasons = _generateSeasons(random);
@@ -325,8 +394,16 @@ class MockDataProvider {
         final daysAgo = random.nextInt(365);
         final addedDate = DateTime.now().subtract(Duration(days: daysAgo));
         
-        // Use placeholder image URL (colored container will be used in UI)
-        final imageUrl = 'placeholder://${type.name}/$color';
+        // Use asset image if available, otherwise use placeholder
+        String imageUrl;
+        if (assetInfo != null && assetInfo['images'] is List && (assetInfo['images'] as List).isNotEmpty) {
+          final images = assetInfo['images'] as List<String>;
+          final imageName = images[random.nextInt(images.length)];
+          imageUrl = 'assets/${assetInfo['folder']}/$imageName';
+        } else {
+          // Fallback to placeholder
+          imageUrl = 'placeholder://${type.name}/$color';
+        }
         
         items.add(ClothingItem(
           id: uuid.v4(),

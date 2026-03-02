@@ -36,7 +36,7 @@ class OutfitCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -117,7 +117,7 @@ class OutfitCard extends StatelessWidget {
                       width: 40,
                       margin: const EdgeInsets.only(left: 4),
                       decoration: BoxDecoration(
-                        color: GoldFitTheme.primary.withOpacity(0.2),
+                        color: GoldFitTheme.primary.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
@@ -175,39 +175,15 @@ class OutfitCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: _getColorFromName(item.color),
-        image: DecorationImage(
-          image: NetworkImage(
-            _getMockImageUrl(item.type, item.color, item.id),
-          ),
-          fit: BoxFit.cover,
+      ),
+      child: Center(
+        child: Icon(
+          _getIconForType(item.type),
+          size: 32,
+          color: Colors.white.withValues(alpha: 0.7),
         ),
       ),
     );
-  }
-
-  /// Returns a mock image URL based on clothing type and color
-  String _getMockImageUrl(ClothingType type, String color, String id) {
-    String keyword = 'clothing';
-    switch (type) {
-      case ClothingType.tops:
-        keyword = 'shirt,tshirt';
-        break;
-      case ClothingType.bottoms:
-        keyword = 'pants,jeans';
-        break;
-      case ClothingType.outerwear:
-        keyword = 'jacket,coat';
-        break;
-      case ClothingType.shoes:
-        keyword = 'shoes,sneakers';
-        break;
-      case ClothingType.accessories:
-        keyword = 'bag,accessories';
-        break;
-    }
-    
-    // Using Unsplash source API for random images based on keywords
-    return 'https://source.unsplash.com/featured/?$keyword,$color&sig=$id';
   }
 
   /// Builds the vibe label chip.

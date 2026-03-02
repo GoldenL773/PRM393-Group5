@@ -33,7 +33,7 @@ class ClothingItemCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -61,7 +61,7 @@ class ClothingItemCard extends StatelessWidget {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            Colors.black.withOpacity(0.0),
+                            Colors.black.withValues(alpha: 0.0),
                           ],
                         ),
                       ),
@@ -101,45 +101,15 @@ class ClothingItemCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: _getColorFromName(item.color),
-        image: DecorationImage(
-          image: NetworkImage(
-            _getMockImageUrl(item.type, item.color),
-          ),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.1),
-            BlendMode.darken,
-          ),
+      ),
+      child: Center(
+        child: Icon(
+          _getIconForType(item.type),
+          size: 48,
+          color: Colors.white.withValues(alpha: 0.7),
         ),
       ),
     );
-  }
-
-  /// Returns a mock image URL based on clothing type and color
-  String _getMockImageUrl(ClothingType type, String color) {
-    // Unsplash search keywords based on type
-    String keyword = 'clothing';
-    switch (type) {
-      case ClothingType.tops:
-        keyword = 'shirt,tshirt,blouse';
-        break;
-      case ClothingType.bottoms:
-        keyword = 'pants,jeans,skirt';
-        break;
-      case ClothingType.outerwear:
-        keyword = 'jacket,coat,sweater';
-        break;
-      case ClothingType.shoes:
-        keyword = 'shoes,sneakers,boots';
-        break;
-      case ClothingType.accessories:
-        keyword = 'accessories,bag,watch,sunglasses';
-        break;
-    }
-    
-    // Use Unsplash Source API to get a random image based on keywords
-    // Adding the item ID ensures the same item gets the same image consistently
-    return 'https://source.unsplash.com/featured/?$keyword,$color&sig=${item.id}';
   }
 
   /// Returns a Color based on the color name string.

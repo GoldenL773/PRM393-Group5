@@ -19,72 +19,337 @@ class ItemDetailScreen extends StatelessWidget {
 
     if (itemId == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Item Detail'),
-        ),
-        body: const Center(
-          child: Text('No item ID provided'),
-        ),
+        appBar: AppBar(title: const Text('Item Detail')),
+        body: const Center(child: Text('No item ID provided')),
       );
     }
 
     // Get the item from AppState
-    final appState = Provider.of<AppState>(context, listen: false);
+    final appState = Provider.of<AppState>(context);
     final item = appState.dataProvider.getItemById(itemId);
 
     if (item == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Item Detail'),
-        ),
-        body: const Center(
-          child: Text('Item not found'),
-        ),
+        appBar: AppBar(title: const Text('Item Detail')),
+        body: const Center(child: Text('Item not found')),
       );
     }
 
     return Scaffold(
+      backgroundColor: GoldFitTheme.backgroundLight,
+      extendBodyBehindAppBar: true, // Allow image to go behind AppBar
       appBar: AppBar(
-        title: const Text('Item Detail'),
+        backgroundColor: Colors.transparent, // Transparent AppBar
+        elevation: 0,
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.9),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: GoldFitTheme.textDark),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              // TODO: Navigate to edit screen (task 11.2)
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Edit functionality coming soon')),
-              );
-            },
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.edit, color: GoldFitTheme.textDark),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Edit functionality coming soon')),
+                );
+              },
+            ),
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Full-size image with zoom capability
-          Expanded(
-            flex: 3,
-            child: InteractiveViewer(
-              minScale: 0.5,
-              maxScale: 4.0,
-              child: Center(
-                child: _buildItemImage(item),
+          // 1. Large Image Header (Top 45% of screen)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: MediaQuery.of(context).size.height * 0.45,
+            child: Hero(
+              tag: 'item_${item.id}',
+              child: _buildItemImage(item),
+            ),
+          ),
+
+          // 2. Info Sheet (Bottom 60% of screen, overlapping image)
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.40,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Drag Handle Indicator
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+
+                    // Title and Price Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _formatClothingType(item.type).toUpperCase(), // Main Title (e.g., "TOPS")
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: GoldFitTheme.gold600,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${_capitalize(item.color)} ${_formatClothingType(item.type)}', // Subtitle (e.g., "Red Tops")
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: GoldFitTheme.textDark,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (item.price != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: GoldFitTheme.primary.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '\$${item.price!.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: GoldFitTheme.gold700,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Details Grid
+                    const Text(
+                      'Details',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: GoldFitTheme.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Grid of details
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      childAspectRatio: 2.5,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      children: [
+                        _buildDetailItem(
+                          context,
+                          icon: Icons.palette_outlined,
+                          label: 'Color',
+                          value: _capitalize(item.color),
+                        ),
+                        _buildDetailItem(
+                          context,
+                          icon: Icons.category_outlined,
+                          label: 'Category',
+                          value: _formatClothingType(item.type),
+                        ),
+                        _buildDetailItem(
+                          context,
+                          icon: Icons.calendar_month_outlined,
+                          label: 'Added',
+                          value: '${item.addedDate.day}/${item.addedDate.month}/${item.addedDate.year}',
+                        ),
+                        _buildDetailItem(
+                          context,
+                          icon: Icons.history,
+                          label: 'Usage',
+                          value: '${item.usageCount} times',
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Seasons Section
+                    const Text(
+                      'Seasons',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: GoldFitTheme.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: item.seasons.map((season) {
+                        return Chip(
+                          label: Text(_formatSeason(season)),
+                          backgroundColor: GoldFitTheme.yellow100,
+                          labelStyle: const TextStyle(
+                            color: GoldFitTheme.gold700,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                          side: BorderSide.none,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // Delete Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: () => _showDeleteConfirmation(context, item),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[50], // Light red background
+                          foregroundColor: Colors.red, // Red text
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.delete_outline),
+                            SizedBox(width: 8),
+                            Text(
+                              'Delete Item',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    // Extra padding for bottom safe area
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+                  ],
+                ),
               ),
             ),
           ),
-          
-          // Tag display section
+        ],
+      ),
+    );
+  }
+
+  /// Helper to capitalize first letter
+  String _capitalize(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1);
+  }
+
+  /// Helper to build a detail item box
+  Widget _buildDetailItem(BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: GoldFitTheme.backgroundLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 16, color: GoldFitTheme.textMedium),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            flex: 2,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTagSection(context, item),
-                  const SizedBox(height: 24),
-                  _buildDeleteButton(context, item),
-                ],
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: GoldFitTheme.textLight,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: GoldFitTheme.textDark,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],
@@ -98,7 +363,19 @@ class ItemDetailScreen extends StatelessWidget {
     if (item.imageUrl.startsWith('assets/')) {
       return Image.asset(
         item.imageUrl,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildPlaceholderImage(item);
+        },
+      );
+    } else if (item.imageUrl.startsWith('http')) {
+       return Image.network(
+        item.imageUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
         errorBuilder: (context, error, stackTrace) {
           return _buildPlaceholderImage(item);
         },
@@ -112,115 +389,23 @@ class ItemDetailScreen extends StatelessWidget {
   Widget _buildPlaceholderImage(ClothingItem item) {
     return Container(
       width: double.infinity,
-      color: _getColorFromName(item.color),
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: _getColorFromName(item.color),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            _getColorFromName(item.color),
+            _getColorFromName(item.color).withOpacity(0.7),
+          ],
+        ),
+      ),
       child: Center(
         child: Icon(
           _getIconForType(item.type),
-          size: 120,
-          color: Colors.white.withOpacity(0.7),
-        ),
-      ),
-    );
-  }
-
-  /// Builds the tag display section
-  Widget _buildTagSection(BuildContext context, ClothingItem item) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Item Details',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: GoldFitTheme.textDark,
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Type tag
-        _buildTagRow(
-          context,
-          'Type',
-          _formatClothingType(item.type),
-          Icons.category,
-        ),
-        const SizedBox(height: 12),
-        
-        // Color tag
-        _buildTagRow(
-          context,
-          'Color',
-          item.color,
-          Icons.palette,
-        ),
-        const SizedBox(height: 12),
-        
-        // Seasons tag
-        _buildTagRow(
-          context,
-          'Seasons',
-          item.seasons.map((s) => _formatSeason(s)).join(', '),
-          Icons.wb_sunny,
-        ),
-        const SizedBox(height: 12),
-        
-        // Price tag (if available)
-        if (item.price != null)
-          _buildTagRow(
-            context,
-            'Price',
-            '\$${item.price!.toStringAsFixed(2)}',
-            Icons.attach_money,
-          ),
-      ],
-    );
-  }
-
-  /// Builds a single tag row with icon, label, and value
-  Widget _buildTagRow(BuildContext context, String label, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: GoldFitTheme.yellow100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: GoldFitTheme.yellow200),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: GoldFitTheme.gold600, size: 20),
-          const SizedBox(width: 12),
-          Text(
-            '$label: ',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: GoldFitTheme.textDark,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: GoldFitTheme.textMedium,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Builds the delete button at the bottom
-  Widget _buildDeleteButton(BuildContext context, ClothingItem item) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () => _showDeleteConfirmation(context, item),
-        icon: const Icon(Icons.delete),
-        label: const Text('Delete Item'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          size: 80,
+          color: Colors.white.withOpacity(0.5),
         ),
       ),
     );

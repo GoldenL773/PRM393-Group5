@@ -6,15 +6,118 @@ import 'package:goldfit_frontend/providers/app_state.dart';
 import 'package:goldfit_frontend/providers/mock_data_provider.dart';
 import 'package:goldfit_frontend/utils/navigation_manager.dart';
 import 'package:goldfit_frontend/utils/routes.dart';
+import 'package:goldfit_frontend/features/home/home_viewmodel.dart';
+import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
+import 'package:goldfit_frontend/models/outfit.dart';
+
+// Mock OutfitRepository for testing
+class MockOutfitRepository implements OutfitRepository {
+  final List<Outfit> _outfits = [];
+
+  MockOutfitRepository() {
+    // Add some test outfits
+    _outfits.addAll([
+      Outfit(
+        id: '1',
+        name: 'Casual Summer',
+        itemIds: ['item1', 'item2'],
+        vibe: 'Casual',
+        createdDate: DateTime.now(),
+      ),
+      Outfit(
+        id: '2',
+        name: 'Work Professional',
+        itemIds: ['item3', 'item4'],
+        vibe: 'Work',
+        createdDate: DateTime.now(),
+      ),
+      Outfit(
+        id: '3',
+        name: 'Date Night',
+        itemIds: ['item5', 'item6'],
+        vibe: 'Date Night',
+        createdDate: DateTime.now(),
+      ),
+    ]);
+  }
+
+  @override
+  Future<Outfit> create(Outfit outfit) async {
+    _outfits.add(outfit);
+    return outfit;
+  }
+
+  @override
+  Future<Outfit?> getById(String id) async {
+    try {
+      return _outfits.firstWhere((o) => o.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  Future<List<Outfit>> getAll() async {
+    return List.from(_outfits);
+  }
+
+  @override
+  Future<List<Outfit>> getByVibe(String vibe) async {
+    return _outfits.where((o) => o.vibe == vibe).toList();
+  }
+
+  @override
+  Future<Outfit> update(Outfit outfit) async {
+    final index = _outfits.indexWhere((o) => o.id == outfit.id);
+    if (index != -1) {
+      _outfits[index] = outfit;
+    }
+    return outfit;
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    _outfits.removeWhere((o) => o.id == id);
+  }
+
+  @override
+  Future<void> assignToDate(String outfitId, DateTime date) async {
+    // Mock implementation
+  }
+
+  @override
+  Future<void> unassignFromDate(DateTime date) async {
+    // Mock implementation
+  }
+
+  @override
+  Future<List<Outfit>> getByDate(DateTime date) async {
+    return [];
+  }
+
+  @override
+  Future<List<Outfit>> getByDateRange(DateTime start, DateTime end) async {
+    return [];
+  }
+
+  @override
+  Stream<List<Outfit>> watchAll() {
+    return Stream.value(_outfits);
+  }
+}
 
 void main() {
   group('HomeScreen Widget Tests', () {
     late AppState appState;
     late NavigationManager navigationManager;
+    late MockOutfitRepository mockOutfitRepository;
+    late HomeViewModel homeViewModel;
 
     setUp(() {
       appState = AppState(MockDataProvider());
       navigationManager = NavigationManager();
+      mockOutfitRepository = MockOutfitRepository();
+      homeViewModel = HomeViewModel(mockOutfitRepository);
     });
 
     Widget createTestWidget() {
@@ -22,6 +125,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AppState>.value(value: appState),
           Provider<NavigationManager>.value(value: navigationManager),
+          ChangeNotifierProvider<HomeViewModel>.value(value: homeViewModel),
         ],
         child: MaterialApp(
           home: const HomeScreen(),
@@ -46,6 +150,19 @@ void main() {
       expect(find.text(weather.location), findsOneWidget);
     });
 
+    testWidgets('displays recommendations after loading', (WidgetTester tester) async {
+      await tester.pumpWidget(createTestWidget());
+
+      // Wait for loading to complete
+      await tester.pumpAndSettle();
+
+      // Verify recommended outfits section header
+      expect(find.text('Recommended for Today'), findsOneWidget);
+
+      // Verify outfit cards are displayed
+      expect(find.text('Casual Summer'), findsOneWidget);
+    });
+
     testWidgets('displays "Get Styled" button', (WidgetTester tester) async {
       await tester.pumpWidget(createTestWidget());
 
@@ -54,22 +171,6 @@ void main() {
       // Verify "Get Styled" button is present
       expect(find.text('Get Styled'), findsOneWidget);
       expect(find.byIcon(Icons.auto_awesome), findsOneWidget);
-    });
-
-    testWidgets('displays recommended outfits section', (WidgetTester tester) async {
-      await tester.pumpWidget(createTestWidget());
-
-      await tester.pumpAndSettle();
-
-      // Verify recommended outfits section header
-      expect(find.text('Recommended for Today'), findsOneWidget);
-
-      // Verify outfit cards are displayed (up to 3)
-      final recommendations = appState.weatherRecommendations;
-      if (recommendations.isNotEmpty) {
-        // At least one outfit card should be present
-        expect(find.byType(GestureDetector), findsWidgets);
-      }
     });
 
     testWidgets('pull-to-refresh triggers refresh', (WidgetTester tester) async {
@@ -109,19 +210,15 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      final recommendations = appState.weatherRecommendations;
-      if (recommendations.isNotEmpty) {
-        // Find the outfit name text and tap on it
-        final outfitName = recommendations.first.name;
-        final outfitNameFinder = find.text(outfitName);
-        
-        if (outfitNameFinder.evaluate().isNotEmpty) {
-          await tester.tap(outfitNameFinder);
-          await tester.pumpAndSettle();
+      // Find the outfit name text and tap on it
+      final outfitNameFinder = find.text('Casual Summer');
+      
+      if (outfitNameFinder.evaluate().isNotEmpty) {
+        await tester.tap(outfitNameFinder);
+        await tester.pumpAndSettle();
 
-          // Verify navigation to try-on screen
-          expect(find.text('Try-On Screen'), findsOneWidget);
-        }
+        // Verify navigation to try-on screen
+        expect(find.text('Try-On Screen'), findsOneWidget);
       }
     });
   });

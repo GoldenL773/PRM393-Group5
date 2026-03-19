@@ -3,26 +3,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:goldfit_frontend/screens/insights_screen.dart';
 import 'package:goldfit_frontend/screens/item_detail_screen.dart';
-import 'package:goldfit_frontend/providers/app_state.dart';
-import 'package:goldfit_frontend/providers/mock_data_provider.dart';
+import 'package:goldfit_frontend/features/insights/insights_viewmodel.dart';
+import 'package:goldfit_frontend/shared/repositories/analytics_repository.dart';
+import 'package:goldfit_frontend/models/wardrobe_analytics.dart';
+import 'package:goldfit_frontend/models/clothing_item.dart';
 import 'package:goldfit_frontend/widgets/clothing_item_card.dart';
 import 'package:goldfit_frontend/utils/routes.dart';
 
-/// Integration tests for InsightsScreen navigation
+/// Integration tests for InsightsScreen navigation with ViewModel
 /// 
-/// Validates: Requirements 10.3, 10.4 - Navigation from Most Worn and Dusty Corner
+/// Validates: Requirements 10.3, 10.4, 14.3, 14.4 - Navigation from Most Worn and Dusty Corner
 void main() {
-  late MockDataProvider mockDataProvider;
-  late AppState appState;
+  late MockAnalyticsRepository mockRepository;
+  late InsightsViewModel viewModel;
 
   setUp(() {
-    mockDataProvider = MockDataProvider();
-    appState = AppState(mockDataProvider);
+    mockRepository = MockAnalyticsRepository();
+    viewModel = InsightsViewModel(mockRepository);
   });
 
   Widget createTestApp() {
-    return ChangeNotifierProvider<AppState>.value(
-      value: appState,
+    return ChangeNotifierProvider<InsightsViewModel>.value(
+      value: viewModel,
       child: MaterialApp(
         home: const InsightsScreen(),
         routes: {
@@ -35,9 +37,10 @@ void main() {
   group('InsightsScreen Navigation Integration', () {
     testWidgets('tapping Most Worn item navigates to item detail', (tester) async {
       await tester.pumpWidget(createTestApp());
+      await tester.pump(); // Trigger initState
       await tester.pumpAndSettle();
 
-      final analytics = appState.analytics;
+      final analytics = mockRepository.mockAnalytics;
       
       // Only test if there are items in Most Worn
       if (analytics.mostWorn.isNotEmpty) {
@@ -57,9 +60,10 @@ void main() {
 
     testWidgets('tapping Dusty Corner item navigates to item detail', (tester) async {
       await tester.pumpWidget(createTestApp());
+      await tester.pump();
       await tester.pumpAndSettle();
 
-      final analytics = appState.analytics;
+      final analytics = mockRepository.mockAnalytics;
       
       // Only test if there are items in Dusty Corner
       if (analytics.leastWorn.isNotEmpty) {
@@ -81,13 +85,12 @@ void main() {
 
     testWidgets('correct item ID is passed to item detail screen', (tester) async {
       await tester.pumpWidget(createTestApp());
+      await tester.pump();
       await tester.pumpAndSettle();
 
-      final analytics = appState.analytics;
+      final analytics = mockRepository.mockAnalytics;
       
       if (analytics.mostWorn.isNotEmpty) {
-        final firstItem = analytics.mostWorn.first;
-        
         // Find and tap the first item card
         final itemCards = find.byType(ClothingItemCard);
         if (itemCards.evaluate().isNotEmpty) {
@@ -104,12 +107,13 @@ void main() {
       }
     });
 
-    testWidgets('analytics data is properly accessed from AppState', (tester) async {
+    testWidgets('analytics data is properly accessed from ViewModel', (tester) async {
       await tester.pumpWidget(createTestApp());
+      await tester.pump();
       await tester.pumpAndSettle();
 
       // Verify that analytics data is displayed
-      final analytics = appState.analytics;
+      final analytics = mockRepository.mockAnalytics;
       
       // Check total items
       expect(find.text('${analytics.totalItems}'), findsOneWidget);
@@ -122,15 +126,17 @@ void main() {
       expect(find.text('Dusty Corner'), findsOneWidget);
     });
 
-    testWidgets('Provider properly provides analytics data', (tester) async {
+    testWidgets('ViewModel properly provides analytics data', (tester) async {
       await tester.pumpWidget(createTestApp());
+      await tester.pump();
       await tester.pumpAndSettle();
 
-      // Get analytics from AppState
-      final analytics = appState.analytics;
+      // Get analytics from ViewModel
+      final analytics = viewModel.analytics;
       
       // Verify analytics has valid data
-      expect(analytics.totalItems, greaterThanOrEqualTo(0));
+      expect(analytics, isNotNull);
+      expect(analytics!.totalItems, greaterThanOrEqualTo(0));
       expect(analytics.totalValue, greaterThanOrEqualTo(0));
       expect(analytics.mostWorn, isNotNull);
       expect(analytics.leastWorn, isNotNull);
@@ -140,4 +146,78 @@ void main() {
       expect(find.text('Total Value'), findsOneWidget);
     });
   });
+}
+
+/// Mock AnalyticsRepository for testing
+class MockAnalyticsRepository implements AnalyticsRepository {
+  final WardrobeAnalytics mockAnalytics = WardrobeAnalytics(
+    totalItems: 25,
+    totalValue: 2500.0,
+    mostWorn: [
+      ClothingItem(
+        id: '1',
+        imageUrl: 'assets/images/placeholder.png',
+        type: ClothingType.tops,
+        color: 'Blue',
+        seasons: [Season.spring, Season.summer],
+        usageCount: 10,
+        addedDate: DateTime.now(),
+      ),
+      ClothingItem(
+        id: '2',
+        imageUrl: 'assets/images/placeholder.png',
+        type: ClothingType.bottoms,
+        color: 'Black',
+        seasons: [Season.fall, Season.winter],
+        usageCount: 8,
+        addedDate: DateTime.now(),
+      ),
+    ],
+    leastWorn: [
+      ClothingItem(
+        id: '3',
+        imageUrl: 'assets/images/placeholder.png',
+        type: ClothingType.outerwear,
+        color: 'Red',
+        seasons: [Season.summer],
+        usageCount: 0,
+        addedDate: DateTime.now(),
+      ),
+    ],
+  );
+
+  @override
+  Future<WardrobeAnalytics> getAnalytics() async {
+    return mockAnalytics;
+  }
+
+  @override
+  Future<List<ClothingItem>> getMostWorn(int limit) async {
+    return mockAnalytics.mostWorn;
+  }
+
+  @override
+  Future<List<ClothingItem>> getLeastWorn(int limit) async {
+    return mockAnalytics.leastWorn;
+  }
+
+  @override
+  Future<Map<ClothingType, int>> getItemCountByType() async {
+    return {};
+  }
+
+  @override
+  Future<double> getTotalValue() async {
+    return mockAnalytics.totalValue;
+  }
+
+  @override
+  Future<void> recordUsage(String outfitId, DateTime date) async {
+    // No-op for mock
+  }
+
+  @override
+  void invalidateCache() {
+    // No-op for mock
+  }
 }

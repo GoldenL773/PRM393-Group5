@@ -16,14 +16,15 @@ class GeminiService {
   GeminiService()
       : _textModel = GenerativeModel(
           model: 'gemini-2.5-flash',
-          apiKey: dotenv.env['GEMINI_API_KEY'] ?? 'PLACEHOLDER_GEMINI_KEY',
+          apiKey: dotenv.env['GEMINI_API_KEY_TEXT'] ?? dotenv.env['GEMINI_API_KEY'] ?? 'PLACEHOLDER_GEMINI_KEY',
         ),
         _visionModel = GenerativeModel(
           model: 'gemini-2.5-flash',
-          apiKey: dotenv.env['GEMINI_API_KEY'] ?? 'PLACEHOLDER_GEMINI_KEY',
+          apiKey: dotenv.env['GEMINI_API_KEY_TEXT'] ?? dotenv.env['GEMINI_API_KEY'] ?? 'PLACEHOLDER_GEMINI_KEY',
         );
 
   String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? 'PLACEHOLDER_GEMINI_KEY';
+  String get _textApiKey => dotenv.env['GEMINI_API_KEY_TEXT'] ?? _apiKey;
 
   /// Helper for sending raw HTTP requests with responseModalities
   Future<String?> _generateImageViaRest(String model, Map<String, dynamic> requestBody) async {
@@ -253,8 +254,7 @@ class GeminiService {
     try {
       if (outfits.isEmpty) return null;
 
-      final apiKey = dotenv.env['GEMINI_API_KEY'];
-      if (apiKey == null || apiKey == 'PLACEHOLDER_GEMINI_KEY') {
+      if (_textApiKey == 'PLACEHOLDER_GEMINI_KEY') {
         return outfits.first.id; // Fallback to first
       }
 
@@ -292,8 +292,7 @@ Return ONLY the ID of the selected outfit, nothing else.
         return "Please select some clothing items for styling advice.";
       }
       
-      final apiKey = dotenv.env['GEMINI_API_KEY'];
-      if (apiKey == null || apiKey == 'PLACEHOLDER_GEMINI_KEY') {
+      if (_textApiKey == 'PLACEHOLDER_GEMINI_KEY') {
         return "This is a great outfit for $weather! The combination of colors works well together.";
       }
 
@@ -321,8 +320,7 @@ gently suggest what to change.
   /// Analyze the realistic fit using Gemini Vision
   Future<String> analyzeFit(String basePhotoPath, List<ClothingItem> items) async {
     try {
-      final apiKey = dotenv.env['GEMINI_API_KEY'];
-      if (apiKey == null || apiKey == 'PLACEHOLDER_GEMINI_KEY') {
+      if (_textApiKey == 'PLACEHOLDER_GEMINI_KEY') {
         // Fallback if no real API key
         return "The outfit fits well and the proportions look correct.";
       }

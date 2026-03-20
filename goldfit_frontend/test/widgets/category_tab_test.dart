@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:goldfit_frontend/widgets/category_tab.dart';
-import 'package:goldfit_frontend/utils/theme.dart';
+import 'package:goldfit_frontend/shared/widgets/category_tab.dart';
+import 'package:goldfit_frontend/shared/utils/theme.dart';
 
 void main() {
   group('CategoryTab Widget Tests', () {

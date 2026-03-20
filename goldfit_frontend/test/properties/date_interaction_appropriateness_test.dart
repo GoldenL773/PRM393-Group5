@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kiri_check/kiri_check.dart';
-import 'package:goldfit_frontend/models/outfit.dart';
-import 'package:goldfit_frontend/providers/app_state.dart';
-import 'package:goldfit_frontend/providers/mock_data_provider.dart';
-import 'package:goldfit_frontend/screens/planner_screen.dart';
-import 'package:goldfit_frontend/utils/theme.dart';
+import 'package:goldfit_frontend/shared/providers/app_state.dart';
+import 'package:goldfit_frontend/shared/providers/mock_data_provider.dart';
+import 'package:goldfit_frontend/features/planner/planner_screen.dart';
+import 'package:goldfit_frontend/shared/utils/theme.dart';
 import 'package:provider/provider.dart';
 
 void main() {

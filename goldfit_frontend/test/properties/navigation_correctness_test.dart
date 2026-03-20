@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kiri_check/kiri_check.dart';
-import 'package:goldfit_frontend/models/clothing_item.dart';
-import 'package:goldfit_frontend/models/outfit.dart';
-import 'package:goldfit_frontend/providers/app_state.dart';
-import 'package:goldfit_frontend/providers/mock_data_provider.dart';
-import 'package:goldfit_frontend/screens/app_shell.dart';
-import 'package:goldfit_frontend/widgets/clothing_item_card.dart';
-import 'package:goldfit_frontend/widgets/outfit_card.dart';
-import 'package:goldfit_frontend/utils/routes.dart';
-import 'package:goldfit_frontend/utils/theme.dart';
+import 'package:goldfit_frontend/shared/models/clothing_item.dart';
+import 'package:goldfit_frontend/shared/models/outfit.dart';
+import 'package:goldfit_frontend/shared/providers/app_state.dart';
+import 'package:goldfit_frontend/shared/providers/mock_data_provider.dart';
+import 'package:goldfit_frontend/core/routing/app_shell.dart';
+import 'package:goldfit_frontend/shared/widgets/clothing_item_card.dart';
+import 'package:goldfit_frontend/shared/widgets/outfit_card.dart';
+import 'package:goldfit_frontend/shared/utils/theme.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -60,10 +59,10 @@ void main() {
       
       forAll(
         clothingItemArbitrary(),
-        (item) async {
+        (item) {
           String? navigatedItemId;
           
-          await testWidgets('ClothingItemCard tap navigation', (tester) async {
+          testWidgets('ClothingItemCard tap navigation', (tester) async {
             await tester.pumpWidget(
               MaterialApp(
                 theme: GoldFitTheme.lightTheme,
@@ -95,10 +94,10 @@ void main() {
       
       forAll(
         outfitWithItemsArbitrary(),
-        (outfitData) async {
+        (outfitData) {
           Outfit? navigatedOutfit;
           
-          await testWidgets('OutfitCard tap navigation', (tester) async {
+          testWidgets('OutfitCard tap navigation', (tester) async {
             await tester.pumpWidget(
               MaterialApp(
                 theme: GoldFitTheme.lightTheme,
@@ -301,8 +300,8 @@ void main() {
       
       forAll(
         integer(min: 0, max: 4),
-        (tabIndex) async {
-          await testWidgets('Navigation button test', (tester) async {
+        (tabIndex) { // Removed async here
+          testWidgets('Navigation button test', (tester) async {
             await tester.pumpWidget(
               MaterialApp(
                 theme: GoldFitTheme.lightTheme,

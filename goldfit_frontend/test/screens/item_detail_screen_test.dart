@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:goldfit_frontend/screens/item_detail_screen.dart';
-import 'package:goldfit_frontend/providers/app_state.dart';
-import 'package:goldfit_frontend/providers/mock_data_provider.dart';
-import 'package:goldfit_frontend/models/clothing_item.dart';
+import 'package:goldfit_frontend/features/wardrobe/item_detail_screen.dart';
+import 'package:goldfit_frontend/shared/providers/app_state.dart';
+import 'package:goldfit_frontend/shared/providers/mock_data_provider.dart';
+import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 
 void main() {
   group('ItemDetailScreen', () {

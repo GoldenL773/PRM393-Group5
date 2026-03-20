@@ -2,6 +2,7 @@
 ///
 /// This file defines a hierarchy of exceptions used throughout the database
 /// layer for proper error handling and reporting.
+library;
 
 /// Base exception class for all database-related errors.
 ///
@@ -36,11 +37,11 @@ class MigrationException extends DatabaseException {
   final int toVersion;
 
   MigrationException(
-    String message, {
+    super.message, {
     required this.fromVersion,
     required this.toVersion,
-    dynamic cause,
-  }) : super(message, operation: 'migration', cause: cause);
+    super.cause,
+  }) : super(operation: 'migration');
 }
 
 /// Exception thrown when data validation fails.
@@ -51,8 +52,8 @@ class ValidationException extends DatabaseException {
   /// Map of field names to validation error messages
   final Map<String, String> errors;
 
-  ValidationException(String message, this.errors)
-      : super(message, operation: 'validation');
+  ValidationException(super.message, this.errors)
+      : super(operation: 'validation');
 }
 
 /// Exception thrown when a concurrency conflict occurs.
@@ -60,6 +61,6 @@ class ValidationException extends DatabaseException {
 /// This exception is used when multiple operations attempt to modify
 /// the same data simultaneously, causing a conflict.
 class ConcurrencyException extends DatabaseException {
-  ConcurrencyException(String message, {dynamic cause})
-      : super(message, operation: 'concurrent_access', cause: cause);
+  ConcurrencyException(super.message, {super.cause})
+      : super(operation: 'concurrent_access');
 }

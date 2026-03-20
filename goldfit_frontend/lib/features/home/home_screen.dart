@@ -35,11 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
-    final weather = appState.currentWeather;
     
     return Consumer<HomeViewModel>(
       builder: (context, viewModel, child) {
         final recommendations = viewModel.recommendations;
+        final weather = viewModel.weather ?? appState.currentWeather;
 
     return Scaffold(
       appBar: AppBar(
@@ -133,24 +133,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Builds the weather widget displaying temperature, condition, and location
   Widget _buildWeatherWidget(dynamic weather) {
+    final colors = _getWeatherColors(weather.condition);
+    
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28), // Đẩy padding to hơn xíu
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       decoration: BoxDecoration(
-        // Đổi màu Gradient sang vàng pastel nhẹ/trong suốt hơn
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            GoldFitTheme.primary.withOpacity(0.6), // Giảm Opacity
-            GoldFitTheme.yellow100.withOpacity(0.9), // Dùng yellow100 nhẹ hơn yellow200
-          ],
+          colors: colors,
         ),
-        borderRadius: BorderRadius.circular(24), // Bo góc mềm mại hơn từ 16->24
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          // Thêm Shadow nhẹ, độ nhòe cao
           BoxShadow(
-            color: GoldFitTheme.primary.withOpacity(0.2), // Màu shadow ăn nhập với theme
+            color: colors[0].withOpacity(0.2),
             blurRadius: 20,
             spreadRadius: 2,
             offset: const Offset(0, 8),
@@ -164,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Icon(
                 _getWeatherIcon(weather.condition),
-                size: 56, // Tăng size icon nhẹ nhàng
+                size: 56,
                 color: GoldFitTheme.gold700,
               ),
               const SizedBox(width: 20),
@@ -173,20 +170,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${weather.temperature.round()}°F',
+                      '${weather.temperature.round()}°C',
                       style: const TextStyle(
-                        fontSize: 40, // To hơn cho nổi bật
-                        fontWeight: FontWeight.bold, // fontWeight chuẩn
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
                         color: GoldFitTheme.textDark,
-                        letterSpacing: -1, // Sát nét chữ một chút nhìn hiện đại hơn
+                        letterSpacing: -1,
                       ),
                     ),
                     Text(
                       weather.condition,
                       style: const TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.w400, // Đổi fontWeight nhạt lại
-                        color: Colors.black54, // Màu hơi xám như yêu cầu
+                        fontWeight: FontWeight.w400,
+                        color: Colors.black54,
                       ),
                     ),
                   ],
@@ -194,13 +191,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16), // Khoảng cách giãn ra
+          const SizedBox(height: 16),
           Row(
             children: [
               const Icon(
                 Icons.location_on,
                 size: 18,
-                color: Colors.black54, // Đồng bộ màu chữ location
+                color: Colors.black54,
               ),
               const SizedBox(width: 6),
               Text(
@@ -216,6 +213,27 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  List<Color> _getWeatherColors(String condition) {
+    switch (condition.toLowerCase()) {
+      case 'sunny':
+      case 'clear':
+        return [GoldFitTheme.primary.withOpacity(0.6), GoldFitTheme.yellow100.withOpacity(0.9)];
+      case 'cloudy':
+      case 'partly cloudy':
+        return [Colors.blueGrey.withOpacity(0.4), Colors.blue.withOpacity(0.2)];
+      case 'rainy':
+      case 'rain':
+      case 'stormy':
+      case 'thunderstorm':
+        return [Colors.indigo.withOpacity(0.4), Colors.blue.withOpacity(0.2)];
+      case 'snowy':
+      case 'snow':
+        return [Colors.white.withOpacity(0.6), Colors.blue[50]!.withOpacity(0.9)];
+      default:
+        return [GoldFitTheme.primary.withOpacity(0.6), GoldFitTheme.yellow100.withOpacity(0.9)];
+    }
   }
 
   /// Builds the "Get Styled" button

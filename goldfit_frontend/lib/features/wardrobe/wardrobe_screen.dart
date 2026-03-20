@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import 'package:goldfit_frontend/shared/widgets/filter_chip.dart' as custom;
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 import 'package:goldfit_frontend/shared/utils/navigation_manager.dart';
 import 'package:goldfit_frontend/core/storage/image_storage_manager.dart';
+import 'package:goldfit_frontend/shared/services/gemini_service.dart';
 
 /// Wardrobe screen displaying clothing items in a grid with category tabs and filtering.
 /// 
@@ -35,6 +37,7 @@ class WardrobeScreen extends StatefulWidget {
 
 class _WardrobeScreenState extends State<WardrobeScreen> {
   ClothingType? _selectedCategory;
+  bool _isPickingImage = false;
 
   @override
   void initState() {
@@ -631,8 +634,11 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
   /// Picks an image from the given source and saves it.
   Future<void> _pickImage(ImageSource source, WardrobeViewModel viewModel) async {
+    if (_isPickingImage) return;
+    
     final picker = ImagePicker();
     try {
+      setState(() => _isPickingImage = true);
       final pickedFile = await picker.pickImage(
         source: source,
         imageQuality: 85,
@@ -640,21 +646,57 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       );
 
       if (pickedFile != null) {
-        // Save image to local storage
-        final storage = ImageStorageManager();
-        final file = File(pickedFile.path);
-        final relativePath = await storage.saveImage(file);
-
-        // Show dialog to enter clothing details
         if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 16),
+                  Text("Processing image..."),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final storage = ImageStorageManager();
+        final geminiService = GeminiService();
+        String relativePath;
+
+        try {
+          final processedBase64 = await geminiService.removeBackground(pickedFile.path);
+          if (processedBase64 != null) {
+            final bytes = base64Decode(processedBase64);
+            relativePath = await storage.saveImageFromBytes(bytes);
+          } else {
+            // Fallback to original image if background removal fails
+            final file = File(pickedFile.path);
+            relativePath = await storage.saveImage(file);
+          }
+        } catch (e) {
+          final storage = ImageStorageManager();
+          final file = File(pickedFile.path);
+          relativePath = await storage.saveImage(file);
+        }
+
+        if (mounted) {
+          Navigator.of(context).pop(); // Dismiss loading
           _showClothingDetailsDialog(context, relativePath, viewModel);
         }
       }
     } catch (e) {
       if (mounted) {
+        // Ensure loading is dismissed if an error occurs and it was shown
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e')),
+          SnackBar(content: Text('Failed to pick/process image: $e')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingImage = false);
       }
     }
   }
@@ -683,7 +725,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               children: [
                 // Type Dropdown
                 DropdownButtonFormField<ClothingType>(
-                  value: selectedType,
+                  initialValue: selectedType,
                   decoration: const InputDecoration(labelText: 'Type'),
                   items: ClothingType.values.map((type) {
                     return DropdownMenuItem(
@@ -699,7 +741,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 
                 // Color Dropdown
                 DropdownButtonFormField<String>(
-                  value: selectedColor,
+                  initialValue: selectedColor,
                   decoration: const InputDecoration(labelText: 'Color'),
                   items: colors.map((color) {
                     return DropdownMenuItem(

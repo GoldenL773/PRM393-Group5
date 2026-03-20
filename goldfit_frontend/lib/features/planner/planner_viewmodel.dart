@@ -13,7 +13,7 @@ class PlannerViewModel extends ChangeNotifier {
 
   // State properties
   List<Outfit> _outfits = [];
-  Map<DateTime, Outfit> _calendar = {};
+  final Map<DateTime, Outfit> _calendar = {};
   bool _isLoading = false;
   String? _error;
 

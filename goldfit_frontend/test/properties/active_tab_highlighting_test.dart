@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kiri_check/kiri_check.dart';
-import 'package:goldfit_frontend/screens/app_shell.dart';
-import 'package:goldfit_frontend/utils/theme.dart';
+import 'package:goldfit_frontend/core/routing/app_shell.dart';
+import 'package:goldfit_frontend/shared/utils/theme.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -134,8 +134,8 @@ void main() {
       
       forAll(
         integer(min: 0, max: 4),
-        (tabIndex) async {
-          await testWidgets('Tab highlighting for index $tabIndex', (tester) async {
+        (tabIndex) { // Removed async here
+          testWidgets('Tab highlighting for index $tabIndex', (tester) async {
             await tester.pumpWidget(
               MaterialApp(
                 theme: GoldFitTheme.lightTheme,
@@ -252,49 +252,50 @@ void main() {
       }
     });
 
-    property('Tab highlighting persists after multiple navigation actions', () {
+    testWidgets('Tab highlighting persists after multiple navigation actions', (tester) async {
       // **Validates: Requirements 1.4**
       
-      forAll(
-        listOf(integer(min: 0, max: 4), minLength: 3, maxLength: 10),
-        (navigationSequence) async {
-          await testWidgets('Tab highlighting persistence test', (tester) async {
-            await tester.pumpWidget(
-              MaterialApp(
-                theme: GoldFitTheme.lightTheme,
-                home: const AppShell(),
-              ),
-            );
+      final sequences = [
+        [0, 1, 2, 3, 4],
+        [4, 2, 0, 1, 3],
+        [1, 3, 2, 4, 0, 2],
+      ];
 
-            final icons = [
-              Icons.home_outlined,
-              Icons.checkroom_outlined,
-              Icons.person_outline,
-              Icons.calendar_today_outlined,
-              Icons.insights_outlined,
-            ];
+      for (final navigationSequence in sequences) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: GoldFitTheme.lightTheme,
+            home: const AppShell(),
+          ),
+        );
 
-            final screenNames = ['Home', 'Wardrobe', 'Try-On', 'Planner', 'Insights'];
+        final icons = [
+          Icons.home_outlined,
+          Icons.checkroom_outlined,
+          Icons.person_outline,
+          Icons.calendar_today_outlined,
+          Icons.insights_outlined,
+        ];
 
-            // Navigate through the sequence
-            for (final tabIndex in navigationSequence) {
-              await tester.tap(find.byIcon(icons[tabIndex]));
-              await tester.pumpAndSettle();
+        final screenNames = ['Home', 'Wardrobe', 'Try-On', 'Planner', 'Insights'];
 
-              // Verify the correct screen is displayed
-              expect(find.text(screenNames[tabIndex]), findsOneWidget,
-                  reason: 'Screen ${screenNames[tabIndex]} should be displayed');
+        // Navigate through the sequence
+        for (final tabIndex in navigationSequence) {
+          await tester.tap(find.byIcon(icons[tabIndex]));
+          await tester.pumpAndSettle();
 
-              // Verify the correct tab is highlighted
-              final navBar = tester.widget<BottomNavigationBar>(
-                find.byType(BottomNavigationBar),
-              );
-              expect(navBar.currentIndex, equals(tabIndex),
-                  reason: 'Tab at index $tabIndex should be highlighted after navigation');
-            }
-          });
-        },
-      );
+          // Verify the correct screen is displayed
+          expect(find.text(screenNames[tabIndex]), findsOneWidget,
+              reason: 'Screen ${screenNames[tabIndex]} should be displayed');
+
+          // Verify the correct tab is highlighted
+          final navBar = tester.widget<BottomNavigationBar>(
+            find.byType(BottomNavigationBar),
+          );
+          expect(navBar.currentIndex, equals(tabIndex),
+              reason: 'Tab at index $tabIndex should be highlighted after navigation');
+        }
+      }
     });
 
     testWidgets('Only one tab is highlighted at a time', (tester) async {

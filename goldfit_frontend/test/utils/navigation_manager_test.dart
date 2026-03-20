@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:goldfit_frontend/utils/navigation_manager.dart';
-import 'package:goldfit_frontend/utils/routes.dart';
-import 'package:goldfit_frontend/models/outfit.dart';
+import 'package:goldfit_frontend/shared/utils/navigation_manager.dart';
+import 'package:goldfit_frontend/shared/utils/routes.dart';
+import 'package:goldfit_frontend/shared/models/outfit.dart';
 
 void main() {
   group('NavigationManager', () {

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:goldfit_frontend/models/outfit.dart';
-import 'package:goldfit_frontend/models/clothing_item.dart';
+import 'package:goldfit_frontend/shared/models/outfit.dart';
+import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 
 void main() {
   group('Outfit', () {

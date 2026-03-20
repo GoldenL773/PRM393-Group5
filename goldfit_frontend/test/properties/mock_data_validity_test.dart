@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kiri_check/kiri_check.dart';
-import 'package:goldfit_frontend/models/clothing_item.dart';
+import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 
 void main() {
   group('Property 5: Mock Data Validity', () {

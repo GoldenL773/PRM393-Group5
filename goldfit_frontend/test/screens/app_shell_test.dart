@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:goldfit_frontend/screens/app_shell.dart';
-import 'package:goldfit_frontend/utils/theme.dart';
+import 'package:goldfit_frontend/core/routing/app_shell.dart';
+import 'package:goldfit_frontend/shared/utils/theme.dart';
 
 void main() {
   group('AppShell Widget Tests', () {

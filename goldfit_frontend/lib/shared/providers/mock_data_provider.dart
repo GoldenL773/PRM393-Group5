@@ -251,9 +251,9 @@ class MockDataProvider {
     
     // Generate mock weather data
     _currentWeather = WeatherData(
-      temperature: 72.0,
-      condition: 'Sunny',
-      location: 'San Francisco, CA',
+      temperature: 25.0,
+      condition: 'Partly Cloudy',
+      location: 'Detecting...',
       timestamp: DateTime.now(),
     );
     

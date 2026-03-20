@@ -68,14 +68,12 @@ class HomeViewModel extends ChangeNotifier {
     _setError(null);
 
     try {
-      // Fetch all outfits and take top 3 as recommendations
-      // In a future implementation, this could filter based on weather context
+      // Fetch all outfits
       final allOutfits = await _outfitRepository.getAll();
-      final topOutfits = allOutfits.take(3).toList();
       
-      // Load items for each recommendation
+      // Load items for each outfit
       final Map<String, List<ClothingItem>> itemsMap = {};
-      for (final outfit in topOutfits) {
+      for (final outfit in allOutfits) {
         final List<ClothingItem> items = [];
         for (final itemId in outfit.itemIds) {
           final item = await _clothingRepository.getById(itemId);
@@ -86,16 +84,35 @@ class HomeViewModel extends ChangeNotifier {
         itemsMap[outfit.id] = items;
       }
       
-      _recommendations = topOutfits;
-      _recommendationItems = itemsMap;
-      
-      // Get AI styling advice based on top outfit and weather
-      if (topOutfits.isNotEmpty && _weather != null) {
-        final topItems = itemsMap[topOutfits.first.id] ?? [];
-        _stylingAdvice = await _geminiService.getStylingAdvice(
-          topItems,
-          '${_weather!.condition}, ${_weather!.temperature}°C',
+      // Let AI pick the best outfit
+      List<Outfit> recommendedOutfits = allOutfits.toList();
+      if (allOutfits.isNotEmpty && _weather != null) {
+        final weatherStr = '${_weather!.condition}, ${_weather!.temperature}°C';
+        final bestId = await _geminiService.recommendBestOutfit(
+          allOutfits, 
+          itemsMap, 
+          weatherStr
         );
+        
+        if (bestId != null) {
+          final bestIndex = recommendedOutfits.indexWhere((o) => o.id == bestId);
+          if (bestIndex != -1) {
+            final bestOutfit = recommendedOutfits.removeAt(bestIndex);
+            recommendedOutfits.insert(0, bestOutfit);
+          }
+        }
+        
+        // Take top 3
+        final topOutfits = recommendedOutfits.take(3).toList();
+        _recommendations = topOutfits;
+        _recommendationItems = itemsMap;
+        
+        // Get AI styling advice based on top outfit and weather
+        final topItems = itemsMap[topOutfits.first.id] ?? [];
+        _stylingAdvice = await _geminiService.getStylingAdvice(topItems, weatherStr);
+      } else {
+        _recommendations = allOutfits.take(3).toList();
+        _recommendationItems = itemsMap;
       }
       
       notifyListeners();

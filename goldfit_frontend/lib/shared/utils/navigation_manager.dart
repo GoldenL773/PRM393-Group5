@@ -14,6 +14,15 @@ class NavigationManager {
     );
   }
 
+  /// Navigate to edit item screen with item ID
+  void navigateToEditItem(BuildContext context, String itemId) {
+    Navigator.pushNamed(
+      context,
+      AppRoutes.editItem,
+      arguments: {'itemId': itemId},
+    );
+  }
+
   /// Navigate to try-on screen with a preloaded outfit
   void navigateToTryOnWithOutfit(BuildContext context, Outfit outfit) {
     Navigator.pushNamed(

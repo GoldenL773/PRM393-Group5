@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kiri_check/kiri_check.dart';
-import 'package:goldfit_frontend/screens/wardrobe_screen.dart';
-import 'package:goldfit_frontend/screens/try_on_screen.dart';
-import 'package:goldfit_frontend/providers/app_state.dart';
-import 'package:goldfit_frontend/providers/mock_data_provider.dart';
-import 'package:goldfit_frontend/utils/theme.dart';
-import 'package:goldfit_frontend/utils/navigation_manager.dart';
+import 'package:goldfit_frontend/features/wardrobe/wardrobe_screen.dart';
+import 'package:goldfit_frontend/features/try_on/try_on_screen.dart';
+import 'package:goldfit_frontend/shared/providers/app_state.dart';
+import 'package:goldfit_frontend/shared/providers/mock_data_provider.dart';
+import 'package:goldfit_frontend/shared/utils/theme.dart';
+import 'package:goldfit_frontend/shared/utils/navigation_manager.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -91,8 +91,8 @@ void main() {
             initialColumns != finalColumns,
             isTrue,
             reason: 'Orientation change should result in different column counts. '
-                'Initial: ${initialColumns} columns (${initialIsPortrait ? "portrait" : "landscape"}), '
-                'Final: ${finalColumns} columns (${finalIsPortrait ? "portrait" : "landscape"})',
+                'Initial: $initialColumns columns (${initialIsPortrait ? "portrait" : "landscape"}), '
+                'Final: $finalColumns columns (${finalIsPortrait ? "portrait" : "landscape"})',
           );
 
           // Verify specific transitions
@@ -130,7 +130,7 @@ void main() {
           expect(
             expectedLayout,
             isIn(['Column', 'Row']),
-            reason: 'Try-On screen should use ${expectedLayout} layout for ${isPortrait ? "portrait" : "landscape"} orientation',
+            reason: 'Try-On screen should use $expectedLayout layout for ${isPortrait ? "portrait" : "landscape"} orientation',
           );
 
           // Verify aspect ratio optimization

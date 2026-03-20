@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:goldfit_frontend/screens/planner_screen.dart';
-import 'package:goldfit_frontend/providers/app_state.dart';
-import 'package:goldfit_frontend/providers/mock_data_provider.dart';
-import 'package:goldfit_frontend/utils/theme.dart';
+import 'package:goldfit_frontend/features/planner/planner_screen.dart';
+import 'package:goldfit_frontend/shared/providers/app_state.dart';
+import 'package:goldfit_frontend/shared/providers/mock_data_provider.dart';
+import 'package:goldfit_frontend/shared/utils/theme.dart';
 
 void main() {
   group('PlannerScreen Widget Tests', () {

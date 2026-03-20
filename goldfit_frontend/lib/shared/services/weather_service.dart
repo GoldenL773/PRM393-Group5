@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:goldfit_frontend/shared/models/weather_data.dart';
 
 /// Service to get current weather using OpenWeather API and Geolocator
@@ -33,6 +34,24 @@ class WeatherService {
       // Get current position
       Position position = await Geolocator.getCurrentPosition();
       
+      // Get precise location name via Reverse Geocoding
+      String preciseLocation = 'Hanoi';
+      try {
+        List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+        if (placemarks.isNotEmpty) {
+          Placemark place = placemarks[0];
+          // Use subLocality (phường/quận) and locality (thành phố)
+          preciseLocation = [place.subLocality, place.locality]
+              .where((s) => s != null && s.isNotEmpty)
+              .join(', ');
+          if (preciseLocation.isEmpty) {
+            preciseLocation = place.name ?? 'Unknown Location';
+          }
+        }
+      } catch (e) {
+        print('Error in reverse geocoding: $e');
+      }
+
       // Get API Key from .env
       final apiKey = dotenv.env['OPENWEATHER_API_KEY'];
       if (apiKey == null || apiKey == 'PLACEHOLDER_OPENWEATHER_KEY') {
@@ -47,12 +66,11 @@ class WeatherService {
         final data = json.decode(response.body);
         final weather = data['weather'][0]['main'];
         final temp = (data['main']['temp'] as num).toDouble();
-        final location = data['name'];
         
         return WeatherData(
           temperature: temp,
           condition: weather,
-          location: location,
+          location: preciseLocation,
           timestamp: DateTime.now(),
         );
       }

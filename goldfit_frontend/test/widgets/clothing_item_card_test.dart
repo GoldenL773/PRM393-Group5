@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:goldfit_frontend/models/clothing_item.dart';
-import 'package:goldfit_frontend/widgets/clothing_item_card.dart';
+import 'package:goldfit_frontend/shared/models/clothing_item.dart';
+import 'package:goldfit_frontend/shared/widgets/clothing_item_card.dart';
 
 void main() {
   group('ClothingItemCard', () {

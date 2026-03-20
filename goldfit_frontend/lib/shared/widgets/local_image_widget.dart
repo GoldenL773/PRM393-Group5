@@ -5,21 +5,46 @@ import 'package:goldfit_frontend/core/storage/image_storage_manager.dart';
 class LocalImageWidget extends StatelessWidget {
   final String imagePath;
   final BoxFit fit;
+  final double? width;
+  final double? height;
 
   const LocalImageWidget({
     super.key,
     required this.imagePath,
     this.fit = BoxFit.cover,
+    this.width,
+    this.height,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Determine the actual width and height to use based on constraints
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // We need to resolve double.infinity to a concrete size if possible,
+        // or allow the image to size itself naturally if constraints are unbounded.
+        double? effectiveWidth = width;
+        double? effectiveHeight = height;
+
+        if (width == double.infinity) {
+          effectiveWidth = constraints.hasBoundedWidth ? constraints.maxWidth : null;
+        }
+        if (height == double.infinity) {
+          effectiveHeight = constraints.hasBoundedHeight ? constraints.maxHeight : null;
+        }
+
+        return _buildImage(effectiveWidth, effectiveHeight);
+      },
+    );
+  }
+
+  Widget _buildImage(double? effectiveWidth, double? effectiveHeight) {
     if (imagePath.startsWith('http')) {
       return Image.network(
         imagePath,
         fit: fit,
-        width: double.infinity,
-        height: double.infinity,
+        width: effectiveWidth,
+        height: effectiveHeight,
         errorBuilder: (context, error, stackTrace) => const _ImageError(),
       );
     }
@@ -28,8 +53,8 @@ class LocalImageWidget extends StatelessWidget {
       return Image.asset(
         imagePath,
         fit: fit,
-        width: double.infinity,
-        height: double.infinity,
+        width: effectiveWidth,
+        height: effectiveHeight,
         errorBuilder: (context, error, stackTrace) => const _ImageError(),
       );
     }
@@ -49,8 +74,8 @@ class LocalImageWidget extends StatelessWidget {
         return Image.file(
           file,
           fit: fit,
-          width: double.infinity,
-          height: double.infinity,
+          width: effectiveWidth,
+          height: effectiveHeight,
           errorBuilder: (context, error, stackTrace) => const _ImageError(),
         );
       },

@@ -5,8 +5,8 @@ import 'package:goldfit_frontend/core/database/migrations/migration_v1.dart';
 import 'package:goldfit_frontend/shared/repositories/analytics_repository_impl.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository_impl.dart';
 import 'package:goldfit_frontend/shared/repositories/outfit_repository_impl.dart';
-import 'package:goldfit_frontend/models/clothing_item.dart';
-import 'package:goldfit_frontend/models/outfit.dart';
+import 'package:goldfit_frontend/shared/models/clothing_item.dart';
+import 'package:goldfit_frontend/shared/models/outfit.dart';
 
 void main() {
   // Initialize sqflite_ffi for testing

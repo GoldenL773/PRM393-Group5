@@ -5,7 +5,6 @@ import 'package:goldfit_frontend/core/database/database_constants.dart';
 import 'package:goldfit_frontend/core/database/database_exceptions.dart' as db_exceptions;
 import 'package:goldfit_frontend/shared/utils/error_logger.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
-import 'package:goldfit_frontend/shared/utils/error_logger.dart';
 import 'package:goldfit_frontend/shared/models/wardrobe_analytics.dart';
 import 'package:goldfit_frontend/shared/repositories/analytics_repository.dart';
 

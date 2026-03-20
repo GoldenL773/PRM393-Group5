@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:goldfit_frontend/models/weather_data.dart';
+import 'package:goldfit_frontend/shared/models/weather_data.dart';
 
 void main() {
   group('WeatherData', () {

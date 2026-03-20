@@ -71,7 +71,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> _initialize() async {
     if (_clothingRepository != null) {
-      _cachedItems = await _clothingRepository!.getAll();
+      _cachedItems = await _clothingRepository.getAll();
     } else {
       _cachedItems = _dataProvider.getAllItems();
     }
@@ -81,7 +81,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> refreshItems() async {
     if (_clothingRepository != null) {
-      _cachedItems = await _clothingRepository!.getAll();
+      _cachedItems = await _clothingRepository.getAll();
       notifyListeners();
     }
   }
@@ -201,7 +201,7 @@ class AppState extends ChangeNotifier {
   /// Updates an existing clothing item.
   void updateItem(ClothingItem item) async {
     if (_clothingRepository != null) {
-      await _clothingRepository!.update(item);
+      await _clothingRepository.update(item);
       await refreshItems();
     } else {
       _dataProvider.updateItem(item);
@@ -212,7 +212,7 @@ class AppState extends ChangeNotifier {
   /// Adds a new clothing item to the wardrobe.
   void addItem(ClothingItem item) async {
     if (_clothingRepository != null) {
-      await _clothingRepository!.create(item);
+      await _clothingRepository.create(item);
       await refreshItems();
     } else {
       _dataProvider.addItem(item);
@@ -223,7 +223,7 @@ class AppState extends ChangeNotifier {
   /// Deletes a clothing item by its ID.
   void deleteItem(String id) async {
     if (_clothingRepository != null) {
-      await _clothingRepository!.delete(id);
+      await _clothingRepository.delete(id);
       await refreshItems();
     } else {
       _dataProvider.deleteItem(id);

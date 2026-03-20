@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:goldfit_frontend/core/routing/app_shell.dart';
 import 'package:goldfit_frontend/features/wardrobe/item_detail_screen.dart';
+import 'package:goldfit_frontend/features/wardrobe/edit_clothing_screen.dart';
 import 'package:goldfit_frontend/features/try_on/try_on_screen.dart';
 import 'package:goldfit_frontend/features/home/styling_screen.dart';
 import 'package:goldfit_frontend/features/home/recommendations_screen.dart';
@@ -23,6 +24,7 @@ import 'package:goldfit_frontend/features/wardrobe/wardrobe_viewmodel.dart';
 import 'package:goldfit_frontend/features/planner/planner_viewmodel.dart';
 import 'package:goldfit_frontend/features/insights/insights_viewmodel.dart';
 import 'package:goldfit_frontend/features/home/home_viewmodel.dart';
+import 'package:goldfit_frontend/features/home/recommendations_viewmodel.dart';
 
 import 'package:goldfit_frontend/features/debug/debug_log_viewer_screen.dart';
 
@@ -88,6 +90,9 @@ class GoldFitApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => HomeViewModel(outfitRepository, clothingRepository),
         ),
+        ChangeNotifierProvider(
+          create: (_) => RecommendationsViewModel(outfitRepository, clothingRepository),
+        ),
         
         // Legacy providers (to be migrated)
         ChangeNotifierProvider(
@@ -107,6 +112,7 @@ class GoldFitApp extends StatelessWidget {
         home: const AppShell(),
         routes: {
           AppRoutes.itemDetail: (context) => const ItemDetailScreen(),
+          AppRoutes.editItem: (context) => const EditClothingScreen(),
           AppRoutes.tryOn: (context) => const TryOnScreen(),
           AppRoutes.styling: (context) => const StylingScreen(),
           AppRoutes.recommendations: (context) => const RecommendationsScreen(),

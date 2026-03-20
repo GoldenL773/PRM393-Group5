@@ -80,8 +80,7 @@ class OutfitCard extends StatelessWidget {
 
   /// Builds the horizontal preview of outfit items.
   /// 
-  /// Displays up to 4 items in a horizontal row with small thumbnails.
-  /// If there are more than 4 items, shows a "+N" indicator.
+  /// Displays items in a horizontal scrollable row with small thumbnails.
   Widget _buildItemsPreview() {
     return Container(
       height: 120,

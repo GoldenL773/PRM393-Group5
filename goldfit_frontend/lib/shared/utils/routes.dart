@@ -10,6 +10,7 @@ class AppRoutes {
 
   // Detail and secondary routes
   static const String itemDetail = '/item-detail';
+  static const String editItem = '/edit-item';
   static const String styling = '/styling';
   static const String recommendations = '/recommendations';
   static const String debugLogs = '/debug-logs';

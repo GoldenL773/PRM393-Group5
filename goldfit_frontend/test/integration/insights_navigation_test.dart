@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:goldfit_frontend/screens/insights_screen.dart';
-import 'package:goldfit_frontend/screens/item_detail_screen.dart';
+import 'package:goldfit_frontend/features/insights/insights_screen.dart';
+import 'package:goldfit_frontend/features/wardrobe/item_detail_screen.dart';
 import 'package:goldfit_frontend/features/insights/insights_viewmodel.dart';
 import 'package:goldfit_frontend/shared/repositories/analytics_repository.dart';
-import 'package:goldfit_frontend/models/wardrobe_analytics.dart';
-import 'package:goldfit_frontend/models/clothing_item.dart';
-import 'package:goldfit_frontend/widgets/clothing_item_card.dart';
-import 'package:goldfit_frontend/utils/routes.dart';
+import 'package:goldfit_frontend/shared/models/wardrobe_analytics.dart';
+import 'package:goldfit_frontend/shared/models/clothing_item.dart';
+import 'package:goldfit_frontend/shared/widgets/clothing_item_card.dart';
+import 'package:goldfit_frontend/shared/utils/routes.dart';
 
 /// Integration tests for InsightsScreen navigation with ViewModel
 /// 

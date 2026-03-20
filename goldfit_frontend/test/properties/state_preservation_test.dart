@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kiri_check/kiri_check.dart';
-import 'package:goldfit_frontend/models/clothing_item.dart';
-import 'package:goldfit_frontend/models/filter_state.dart';
-import 'package:goldfit_frontend/providers/app_state.dart';
-import 'package:goldfit_frontend/providers/mock_data_provider.dart';
-import 'package:goldfit_frontend/screens/app_shell.dart';
-import 'package:goldfit_frontend/utils/theme.dart';
+import 'package:goldfit_frontend/shared/models/clothing_item.dart';
+import 'package:goldfit_frontend/shared/models/filter_state.dart';
+import 'package:goldfit_frontend/shared/providers/app_state.dart';
+import 'package:goldfit_frontend/shared/providers/mock_data_provider.dart';
+import 'package:goldfit_frontend/core/routing/app_shell.dart';
+import 'package:goldfit_frontend/shared/utils/theme.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -255,8 +255,8 @@ void main() {
       
       forAll(
         filterStateArbitrary(),
-        (filterState) async {
-          await testWidgets('Filter state preservation test', (tester) async {
+        (filterState) { // Removed async here
+          testWidgets('Filter state preservation test', (tester) async {
             final mockDataProvider = MockDataProvider();
             final appState = AppState(mockDataProvider);
 
@@ -303,8 +303,8 @@ void main() {
       
       forAll(
         categoryArbitrary(),
-        (category) async {
-          await testWidgets('Category selection preservation test', (tester) async {
+        (category) { // Removed async here
+          testWidgets('Category selection preservation test', (tester) async {
             final mockDataProvider = MockDataProvider();
             final appState = AppState(mockDataProvider);
 
@@ -433,8 +433,8 @@ void main() {
       
       forAll(
         integer(min: 1, max: 5),
-        (itemCount) async {
-          await testWidgets('Try-on selection preservation test', (tester) async {
+        (itemCount) { // Removed async here
+          testWidgets('Try-on selection preservation test', (tester) async {
             final mockDataProvider = MockDataProvider();
             final appState = AppState(mockDataProvider);
             final items = appState.allItems;

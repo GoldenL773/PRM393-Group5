@@ -32,14 +32,6 @@ class ItemDetailScreen extends StatelessWidget {
       orElse: () => throw Exception('Item not found'),
     );
 
-    // If still not found (exception was caught elsewhere or we just check null)
-    if (item == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Item Detail')),
-        body: const Center(child: Text('Item not found')),
-      );
-    }
-
     return Scaffold(
       backgroundColor: GoldFitTheme.backgroundLight,
       extendBodyBehindAppBar: true, // Allow image to go behind AppBar
@@ -67,9 +59,8 @@ class ItemDetailScreen extends StatelessWidget {
             child: IconButton(
               icon: const Icon(Icons.edit, color: GoldFitTheme.textDark),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Edit functionality coming soon')),
-                );
+                final navigationManager = Provider.of<NavigationManager>(context, listen: false);
+                navigationManager.navigateToEditItem(context, item.id);
               },
             ),
           ),

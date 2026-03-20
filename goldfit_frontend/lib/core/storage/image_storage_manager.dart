@@ -26,6 +26,55 @@ class ImageStorageManager {
   
   ImageStorageManager._internal();
   
+  Future<String> saveTempImageFromBytes(Uint8List imageBytes) async {
+    try {
+      final String uniqueId = _uuid.v4();
+      final String filename = 'temp_$uniqueId.jpg';
+      
+      final Directory tempDir = await getTemporaryDirectory();
+      
+      final Directory imagesDir = Directory(path.join(tempDir.path, 'vto_temp'));
+      if (!await imagesDir.exists()) {
+        await imagesDir.create(recursive: true);
+      }
+      
+      final String imagePath = path.join(imagesDir.path, filename);
+      final File imageFile = File(imagePath);
+      await imageFile.writeAsBytes(imageBytes);
+      
+      return imagePath; // Return absolute path for temp files
+    } catch (e) {
+      throw FileSystemException('Failed to save temp image bytes: $e');
+    }
+  }
+
+  Future<String> saveImageFromBytes(Uint8List imageBytes) async {
+    try {
+      // Generate unique filename
+      final String uniqueId = _uuid.v4();
+      final String filename = '$uniqueId.jpg';
+      
+      // Get documents directory
+      final Directory docsDir = await getApplicationDocumentsDirectory();
+      
+      // Create images directory if it doesn't exist
+      final Directory imagesDir = Directory(path.join(docsDir.path, _imagesFolder));
+      if (!await imagesDir.exists()) {
+        await imagesDir.create(recursive: true);
+      }
+      
+      // Save the original image
+      final String imagePath = path.join(imagesDir.path, filename);
+      final File imageFile = File(imagePath);
+      await imageFile.writeAsBytes(imageBytes);
+      
+      // Return relative path
+      return path.join(_imagesFolder, filename);
+    } catch (e) {
+      throw FileSystemException('Failed to save image bytes: $e');
+    }
+  }
+
   /// Saves an image file to local storage with a unique filename.
   /// 
   /// Returns the relative path to the saved image (e.g., "images/uuid.jpg").

@@ -4,6 +4,7 @@ import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/features/wardrobe/wardrobe_viewmodel.dart';
 import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
+import 'package:goldfit_frontend/shared/utils/navigation_manager.dart';
 
 /// Item detail screen displaying full-size clothing image and editable tags
 /// Shows image with zoom, tag display/editing, and delete button

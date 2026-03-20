@@ -14,7 +14,6 @@ class EditClothingScreen extends StatefulWidget {
 
 class _EditClothingScreenState extends State<EditClothingScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
   late TextEditingController _priceController;
   late ClothingType _selectedType;
   late String _selectedColor;
@@ -23,7 +22,6 @@ class _EditClothingScreenState extends State<EditClothingScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
     _priceController.dispose();
     super.dispose();
   }
@@ -44,8 +42,7 @@ class _EditClothingScreenState extends State<EditClothingScreen> {
     final item = viewModel.items.firstWhere((i) => i.id == itemId);
 
     if (!_isInitialized) {
-      _nameController = TextEditingController(text: item.name);
-      _priceController = TextEditingController(text: item.price.toString());
+      _priceController = TextEditingController(text: item.price?.toString() ?? '0.0');
       _selectedType = item.type;
       _selectedColor = item.color;
       _selectedSeasons = List.from(item.seasons);
@@ -90,32 +87,6 @@ class _EditClothingScreenState extends State<EditClothingScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-
-              // Name Field
-              Text(
-                'Item Name',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: GoldFitTheme.textMedium,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  hintText: 'e.g. Blue Cotton Shirt',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Please enter a name';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
 
               // Price Field
               Text(
@@ -256,7 +227,6 @@ class _EditClothingScreenState extends State<EditClothingScreen> {
       }
 
       final updatedItem = item.copyWith(
-        name: _nameController.text,
         price: double.parse(_priceController.text),
         type: _selectedType,
         seasons: _selectedSeasons,

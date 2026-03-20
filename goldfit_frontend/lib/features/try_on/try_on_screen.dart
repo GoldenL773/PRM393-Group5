@@ -633,33 +633,34 @@ class _TryOnScreenState extends State<TryOnScreen> {
                         ),
                       ),
                     
-                  // Action buttons
-                  Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () => _generateRealisticFitting(),
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Regenerate'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: GoldFitTheme.textDark,
-                          ),
-                        ),
-                        if (_realisticImagePath != null) ...[
-                          const SizedBox(width: 12),
+                    // Action buttons
+                    Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
                           ElevatedButton.icon(
-                            onPressed: () => _showPoseSelectionDialog(),
-                            icon: const Icon(Icons.directions_run),
-                            label: const Text('Change Pose'),
+                            onPressed: () => _generateRealisticFitting(),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Regenerate'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: GoldFitTheme.textDark,
+                            ),
                           ),
+                          if (_realisticImagePath != null) ...[
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                              onPressed: () => _showPoseSelectionDialog(),
+                              icon: const Icon(Icons.directions_run),
+                              label: const Text('Change Pose'),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),

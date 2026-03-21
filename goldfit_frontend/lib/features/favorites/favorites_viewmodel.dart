@@ -10,14 +10,18 @@ class FavoritesViewModel extends ChangeNotifier {
   final ClothingRepository _clothingRepository;
 
   List<Outfit> _favoriteOutfits = [];
+  List<ClothingItem> _favoriteClothes = [];
   bool _isLoading = false;
   String? _error;
   String _selectedVibe = 'All';
+  String _selectedClothingCategory = 'All';
 
   List<Outfit> get favoriteOutfits => _favoriteOutfits;
+  List<ClothingItem> get favoriteClothes => _favoriteClothes;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get selectedVibe => _selectedVibe;
+  String get selectedClothingCategory => _selectedClothingCategory;
 
   FavoritesViewModel(this._outfitRepository, this._clothingRepository) {
     loadFavorites();
@@ -32,6 +36,10 @@ class FavoritesViewModel extends ChangeNotifier {
     try {
       final allOutfits = await _outfitRepository.getAll();
       _favoriteOutfits = allOutfits.where((o) => o.isFavorite).toList();
+      
+      final allClothes = await _clothingRepository.getAll();
+      _favoriteClothes = allClothes.where((c) => c.isFavorite).toList();
+      
       notifyListeners();
     } catch (e) {
       _error = 'Failed to load favorite outfits: $e';
@@ -55,6 +63,22 @@ class FavoritesViewModel extends ChangeNotifier {
     return _favoriteOutfits.where((o) => o.vibe == _selectedVibe).toList();
   }
 
+  /// Sets the selected clothing category filter
+  void setClothingCategoryFilter(String category) {
+    _selectedClothingCategory = category;
+    notifyListeners();
+  }
+
+  /// Returns favorite clothes filtered by the selected category.
+  List<ClothingItem> get filteredFavoriteClothes {
+    if (_selectedClothingCategory == 'All') {
+      return _favoriteClothes;
+    }
+    return _favoriteClothes.where((c) => 
+      c.type.toString().split('.').last.toLowerCase() == _selectedClothingCategory.toLowerCase()
+    ).toList();
+  }
+
   /// Toggles favorite status for an outfit.
   Future<void> toggleFavorite(Outfit outfit) async {
     try {
@@ -72,6 +96,27 @@ class FavoritesViewModel extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _error = 'Failed to update favorite: $e';
+      notifyListeners();
+    }
+  }
+
+  /// Toggles favorite status for a clothing item.
+  Future<void> toggleFavoriteClothing(ClothingItem item) async {
+    try {
+      final updated = item.copyWith(isFavorite: !item.isFavorite);
+      await _clothingRepository.update(updated);
+      
+      // Update local list
+      if (updated.isFavorite) {
+        if (!_favoriteClothes.any((c) => c.id == updated.id)) {
+           _favoriteClothes.insert(0, updated);
+        }
+      } else {
+        _favoriteClothes.removeWhere((c) => c.id == updated.id);
+      }
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to update favorite clothing: $e';
       notifyListeners();
     }
   }

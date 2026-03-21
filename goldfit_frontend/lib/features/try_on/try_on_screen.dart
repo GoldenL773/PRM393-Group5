@@ -42,7 +42,6 @@ class _TryOnScreenState extends State<TryOnScreen> {
   String _vtoLoadingStep = '';
   final Map<String, String> _cleanedGarmentsCache = {}; // item.id -> file path
   final Set<String> _processingItems = {}; // To prevent concurrent processing of the same item
-  bool _isCleaningGarments = false;
   final ImageStorageManager _imageStorageManager = ImageStorageManager();
   
   // Track manual offsets for clothing items in Quick Try mode
@@ -288,8 +287,49 @@ class _TryOnScreenState extends State<TryOnScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Base photo layer
-              _buildBasePhotoPlaceholder(context),
+              // Base photo layer / default silhouette background
+              if (_basePhotoPath != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: LocalImageWidget(
+                    imagePath: _basePhotoPath!,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              else
+                // Default model background when no photo chosen
+                GestureDetector(
+                  onTap: _pickBasePhoto,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [GoldFitTheme.yellow100, GoldFitTheme.backgroundLight],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.person,
+                          size: 100,
+                          color: GoldFitTheme.gold600.withOpacity(0.35),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Tap to add your photo',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: GoldFitTheme.textLight,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               
               // Overlay clothing items in correct order
               ...sortedItems.map((item) => _buildClothingOverlay(item, BoxConstraints.tightFor(width: constraints.maxWidth, height: height))),
@@ -301,43 +341,6 @@ class _TryOnScreenState extends State<TryOnScreen> {
                 child: _buildFavoriteHeartButton(),
               ),
 
-              // Optional background processing indicator (non-blocking)
-              if (_isCleaningGarments)
-                Positioned(
-                  bottom: 12,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(GoldFitTheme.gold600),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Refining...',
-                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
         );
@@ -446,10 +449,16 @@ class _TryOnScreenState extends State<TryOnScreen> {
         final storage = ImageStorageManager();
         final absolutePath = await storage.getImagePath(_basePhotoPath!);
         
-        // Resolve absolute paths for garments
+        // Resolve absolute/asset paths for garments
         final garmentPaths = <String>[];
         for (var item in selectedItems) {
-          if (!item.imageUrl.startsWith('http') && !item.imageUrl.startsWith('assets/')) {
+          if (item.imageUrl.startsWith('http')) {
+            // Network URL - skip (can't pass to local Gemini)
+          } else if (item.imageUrl.startsWith('assets/')) {
+            // Asset path - pass as-is
+            garmentPaths.add(item.imageUrl);
+          } else if (item.imageUrl.isNotEmpty) {
+            // Local relative path
             garmentPaths.add(await storage.getImagePath(item.imageUrl));
           }
         }
@@ -736,6 +745,8 @@ class _TryOnScreenState extends State<TryOnScreen> {
 
       final favoritesViewModel = Provider.of<FavoritesViewModel>(context, listen: false);
       await favoritesViewModel.saveOutfit(outfit);
+      // Refresh favorites list immediately so the saved item appears
+      await favoritesViewModel.loadFavorites();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -868,11 +879,11 @@ class _TryOnScreenState extends State<TryOnScreen> {
       }
 
       // 5. Needs API call
-      itemsToClean.add(item);
+      // itemsToClean.add(item); // Disabled per user request to prevent getting stuck at refining
     }
 
     if (itemsToClean.isEmpty) {
-      // All items already cached – refresh UI if needed
+      // All items already cached or ignoring unrefined - refresh UI if needed
       if (mounted) setState(() {});
       return;
     }
@@ -885,7 +896,6 @@ class _TryOnScreenState extends State<TryOnScreen> {
 
       if (mounted) {
         setState(() {
-          _isCleaningGarments = true;
           _vtoLoadingStep = 'Removing garment backgrounds...';
         });
       }
@@ -926,7 +936,6 @@ class _TryOnScreenState extends State<TryOnScreen> {
         }
         if (mounted) {
           setState(() {
-            _isCleaningGarments = _processingItems.isNotEmpty;
             _vtoLoadingStep = '';
           });
         }
@@ -1097,15 +1106,19 @@ class _TryOnScreenState extends State<TryOnScreen> {
 
   /// Builds the image widget for a clothing item
   Widget _buildClothingImage(ClothingItem item, {double? width, double? height}) {
+    // Priority 1: cleaned image in memory cache
     if (_cleanedGarmentsCache.containsKey(item.id)) {
       return Image.file(
         File(_cleanedGarmentsCache[item.id]!),
         fit: BoxFit.contain,
         width: width,
         height: height,
+        errorBuilder: (_, __, ___) => _buildColorPlaceholder(item, width, height),
       );
-    } else if (item.cleanedImageUrl != null && item.cleanedImageUrl!.isNotEmpty) {
-      // FutureBuilder to safely resolve the absolute path if needed
+    }
+
+    // Priority 2: cleaned DB url
+    if (item.cleanedImageUrl != null && item.cleanedImageUrl!.isNotEmpty) {
       return FutureBuilder<String>(
         future: ImageStorageManager().getImagePath(item.cleanedImageUrl!),
         builder: (context, snapshot) {
@@ -1116,21 +1129,47 @@ class _TryOnScreenState extends State<TryOnScreen> {
               fit: BoxFit.contain,
               width: width,
               height: height,
+              errorBuilder: (_, __, ___) => _buildColorPlaceholder(item, width, height),
             );
           }
           return _buildLoadingPlaceholder(width, height);
         },
       );
-    } else if (item.imageUrl.contains('/')) {
+    }
+
+    // Priority 3: Asset image (mock data uses assets/folder/image.jpg)
+    if (item.imageUrl.startsWith('assets/')) {
+      return Image.asset(
+        item.imageUrl,
+        fit: BoxFit.contain,
+        width: width,
+        height: height,
+        errorBuilder: (_, __, ___) => _buildColorPlaceholder(item, width, height),
+      );
+    }
+
+    // Priority 4: HTTP url
+    if (item.imageUrl.startsWith('http')) {
+      return Image.network(
+        item.imageUrl,
+        fit: BoxFit.contain,
+        width: width,
+        height: height,
+        errorBuilder: (_, __, ___) => _buildColorPlaceholder(item, width, height),
+      );
+    }
+
+    // Priority 5: Local file path (user-added items: relative path via ImageStorageManager)
+    if (item.imageUrl.isNotEmpty) {
       return LocalImageWidget(
         imagePath: item.imageUrl,
         fit: BoxFit.contain,
         width: width,
         height: height,
       );
-    } else {
-      return _buildColorPlaceholder(item, width, height);
     }
+
+    return _buildColorPlaceholder(item, width, height);
   }
 
   Widget _buildLoadingPlaceholder(double? width, double? height) {

@@ -14,6 +14,7 @@ import 'package:goldfit_frontend/shared/utils/routes.dart';
 import 'package:goldfit_frontend/shared/utils/navigation_manager.dart';
 import 'package:goldfit_frontend/core/database/database_manager.dart';
 import 'package:goldfit_frontend/core/database/data_migration_service.dart';
+
 import 'package:goldfit_frontend/shared/repositories/clothing_repository.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository_impl.dart';
 import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
@@ -47,15 +48,23 @@ void main() async {
   final analyticsRepo = AnalyticsRepositoryImpl(dbManager);
 
   // Initialize and run data migration if needed
+  // migrateIfNeeded only runs once (checks a flag in DB). User data is preserved.
   final mockDataProvider = MockDataProvider();
-  final migrationService = DataMigrationService(dbManager, clothingRepo, outfitRepo);
+  final migrationService = DataMigrationService(
+    dbManager,
+    clothingRepo,
+    outfitRepo,
+  );
   await migrationService.migrateIfNeeded(mockDataProvider);
 
-  runApp(GoldFitApp(
-    clothingRepository: clothingRepo,
-    outfitRepository: outfitRepo,
-    analyticsRepository: analyticsRepo,
-  ));
+
+  runApp(
+    GoldFitApp(
+      clothingRepository: clothingRepo,
+      outfitRepository: outfitRepo,
+      analyticsRepository: analyticsRepo,
+    ),
+  );
 }
 
 class GoldFitApp extends StatelessWidget {
@@ -78,7 +87,7 @@ class GoldFitApp extends StatelessWidget {
         Provider<ClothingRepository>.value(value: clothingRepository),
         Provider<OutfitRepository>.value(value: outfitRepository),
         Provider<AnalyticsRepository>.value(value: analyticsRepository),
-        
+
         // ViewModels
         ChangeNotifierProvider(
           create: (_) => WardrobeViewModel(clothingRepository),
@@ -93,12 +102,14 @@ class GoldFitApp extends StatelessWidget {
           create: (_) => HomeViewModel(outfitRepository, clothingRepository),
         ),
         ChangeNotifierProvider(
-          create: (_) => RecommendationsViewModel(outfitRepository, clothingRepository),
+          create: (_) =>
+              RecommendationsViewModel(outfitRepository, clothingRepository),
         ),
         ChangeNotifierProvider(
-          create: (_) => FavoritesViewModel(outfitRepository, clothingRepository),
+          create: (_) =>
+              FavoritesViewModel(outfitRepository, clothingRepository),
         ),
-        
+
         // Legacy providers (to be migrated)
         ChangeNotifierProvider(
           create: (_) => AppState(
@@ -107,9 +118,7 @@ class GoldFitApp extends StatelessWidget {
             outfitRepository: outfitRepository,
           ),
         ),
-        Provider<NavigationManager>(
-          create: (_) => NavigationManager(),
-        ),
+        Provider<NavigationManager>(create: (_) => NavigationManager()),
       ],
       child: MaterialApp(
         title: 'GoldFit',

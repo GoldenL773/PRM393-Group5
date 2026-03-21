@@ -51,8 +51,8 @@ class MockOutfitRepository implements OutfitRepository {
   @override Future<List<Outfit>> getByVibe(String vibe) async => [];
   @override Future<Outfit> update(Outfit outfit) async => outfit;
   @override Future<void> delete(String id) async {}
-  @override Future<void> assignToDate(String outfitId, DateTime date) async {}
-  @override Future<void> unassignFromDate(DateTime date) async {}
+  @override Future<void> assignToDate(String outfitId, DateTime date, String timeSlot, {String? eventName, String? startTime}) async {}
+  @override Future<void> unassignFromDate(DateTime date, String timeSlot) async {}
   @override Future<List<Outfit>> getByDate(DateTime date) async => [];
   @override Future<List<Outfit>> getByDateRange(DateTime start, DateTime end) async => [];
   @override Stream<List<Outfit>> watchAll() => Stream.value([]);

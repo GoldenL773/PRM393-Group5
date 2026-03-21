@@ -12,6 +12,7 @@ import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 import 'package:goldfit_frontend/core/storage/image_storage_manager.dart';
 import 'package:goldfit_frontend/shared/services/gemini_service.dart';
 import 'package:goldfit_frontend/shared/services/pose_detection_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:goldfit_frontend/features/wardrobe/wardrobe_viewmodel.dart';
 import 'package:goldfit_frontend/features/favorites/favorites_viewmodel.dart';
 import 'package:uuid/uuid.dart';
@@ -46,7 +47,57 @@ class _TryOnScreenState extends State<TryOnScreen> {
   
   // Track manual offsets for clothing items in Quick Try mode
   final Map<String, Offset> _clothingOffsets = {};
+  
+  static const String _basePhotoPrefKey = 'try_on_base_photo_path';
   // ------------------------------------------
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedBasePhoto();
+  }
+
+  Future<void> _loadSavedBasePhoto() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString(_basePhotoPrefKey);
+    if (savedPath != null && savedPath.isNotEmpty) {
+      setState(() {
+        _basePhotoPath = savedPath;
+        _standardizedModelPath = savedPath;
+        _vtoLoadingStep = 'Analyzing saved pose...';
+      });
+      try {
+        final absolutePath = await _imageStorageManager.getImagePath(savedPath);
+        final file = File(absolutePath);
+        if (await file.exists()) {
+          final poseResult = await _poseService.analyzeImage(absolutePath);
+          if (mounted) {
+            setState(() {
+              _poseResult = poseResult;
+              _vtoLoadingStep = '';
+            });
+          }
+        } else {
+          // File not found, delete preference
+          await prefs.remove(_basePhotoPrefKey);
+          if (mounted) {
+            setState(() {
+              _basePhotoPath = null;
+              _standardizedModelPath = null;
+              _vtoLoadingStep = '';
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to load saved base photo: $e');
+        if (mounted) {
+          setState(() {
+            _vtoLoadingStep = '';
+          });
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -54,7 +105,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
     super.dispose();
   }
 
-  String? _realisticImagePath; // Path to AI-generated image? _poseResult;
+  String? _realisticImagePath; // Path to AI-generated image
 
   @override
   void didChangeDependencies() {
@@ -1350,6 +1401,12 @@ class _TryOnScreenState extends State<TryOnScreen> {
       if (pickedFile != null) {
         final storage = ImageStorageManager();
         final file = File(pickedFile.path);
+
+        // Delete old image if it's not a default asset
+        if (_basePhotoPath != null && !_basePhotoPath!.startsWith('assets/')) {
+           await storage.deleteImage(_basePhotoPath!);
+        }
+
         final originalRelativePath = await storage.saveImage(file);
         final originalAbsolutePath = await storage.getImagePath(originalRelativePath);
         
@@ -1394,6 +1451,10 @@ class _TryOnScreenState extends State<TryOnScreen> {
             _isStandardizingModel = false;
             _vtoLoadingStep = '';
           });
+          
+          // Save preference
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_basePhotoPrefKey, finalRelativePath);
         }
       }
     } catch (e) {

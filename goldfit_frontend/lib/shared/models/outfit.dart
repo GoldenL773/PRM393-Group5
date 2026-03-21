@@ -9,6 +9,9 @@ class Outfit {
   final String name;
   final List<String> itemIds; // References to ClothingItem IDs
   final DateTime? assignedDate;
+  final String? timeSlot;
+  final String? eventName;
+  final String? startTime;
   final String? vibe; // e.g., Casual, Work, Date Night
   final DateTime createdDate;
   final bool isFavorite;
@@ -20,6 +23,9 @@ class Outfit {
     required this.name,
     required this.itemIds,
     this.assignedDate,
+    this.timeSlot,
+    this.eventName,
+    this.startTime,
     this.vibe,
     required this.createdDate,
     this.isFavorite = false,
@@ -47,6 +53,9 @@ class Outfit {
     String? name,
     List<String>? itemIds,
     DateTime? assignedDate,
+    String? timeSlot,
+    String? eventName,
+    String? startTime,
     String? vibe,
     bool? isFavorite,
     String? modelImagePath,
@@ -57,6 +66,9 @@ class Outfit {
       name: name ?? this.name,
       itemIds: itemIds ?? this.itemIds,
       assignedDate: assignedDate ?? this.assignedDate,
+      timeSlot: timeSlot ?? this.timeSlot,
+      eventName: eventName ?? this.eventName,
+      startTime: startTime ?? this.startTime,
       vibe: vibe ?? this.vibe,
       createdDate: createdDate,
       isFavorite: isFavorite ?? this.isFavorite,
@@ -72,6 +84,9 @@ class Outfit {
       'name': name,
       'itemIds': itemIds,
       'assignedDate': assignedDate?.toIso8601String(),
+      'timeSlot': timeSlot,
+      'eventName': eventName,
+      'startTime': startTime,
       'vibe': vibe,
       'createdDate': createdDate.toIso8601String(),
       'isFavorite': isFavorite ? 1 : 0,
@@ -89,6 +104,9 @@ class Outfit {
       assignedDate: json['assignedDate'] != null
           ? DateTime.parse(json['assignedDate'] as String)
           : null,
+      timeSlot: json['timeSlot'] as String?,
+      eventName: json['eventName'] as String?,
+      startTime: json['startTime'] as String?,
       vibe: json['vibe'] as String?,
       createdDate: DateTime.parse(json['createdDate'] as String),
       isFavorite: (json['isFavorite'] as int?) == 1,

@@ -85,10 +85,10 @@ class MockOutfitRepository implements OutfitRepository {
   }
 
   @override
-  Future<void> assignToDate(String outfitId, DateTime date) async {}
+  Future<void> assignToDate(String outfitId, DateTime date, String timeSlot, {String? eventName, String? startTime}) async {}
 
   @override
-  Future<void> unassignFromDate(DateTime date) async {}
+  Future<void> unassignFromDate(DateTime date, String timeSlot) async {}
 
   @override
   Future<List<Outfit>> getByDate(DateTime date) async {

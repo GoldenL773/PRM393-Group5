@@ -282,7 +282,7 @@ class OutfitRepositoryImpl implements OutfitRepository {
   }
 
   @override
-  Future<void> assignToDate(String outfitId, DateTime date) async {
+  Future<void> assignToDate(String outfitId, DateTime date, String timeSlot, {String? eventName, String? startTime}) async {
     final db = await _dbManager.database;
 
     try {
@@ -296,12 +296,15 @@ class OutfitRepositoryImpl implements OutfitRepository {
         await txn.insert(
           DatabaseConstants.tableOutfitCalendar,
           {
-            DatabaseConstants.columnId: '${outfitId}_${normalizedDate.millisecondsSinceEpoch}',
+            DatabaseConstants.columnId: '${outfitId}_${normalizedDate.millisecondsSinceEpoch}_$timeSlot',
             DatabaseConstants.columnOutfitId: outfitId,
             DatabaseConstants.columnAssignedDate: normalizedDate.millisecondsSinceEpoch,
+            DatabaseConstants.columnTimeSlot: timeSlot,
+            DatabaseConstants.columnEventName: eventName,
+            DatabaseConstants.columnStartTime: startTime,
             DatabaseConstants.columnCreatedAt: DateTime.now().millisecondsSinceEpoch,
           },
-          conflictAlgorithm: ConflictAlgorithm.fail,
+          conflictAlgorithm: ConflictAlgorithm.replace,
         );
 
         // If the date is in the past, record usage
@@ -382,7 +385,7 @@ class OutfitRepositoryImpl implements OutfitRepository {
   }
 
   @override
-  Future<void> unassignFromDate(DateTime date) async {
+  Future<void> unassignFromDate(DateTime date, String timeSlot) async {
     final db = await _dbManager.database;
 
     try {
@@ -391,8 +394,8 @@ class OutfitRepositoryImpl implements OutfitRepository {
 
       await db.delete(
         DatabaseConstants.tableOutfitCalendar,
-        where: '${DatabaseConstants.columnAssignedDate} = ?',
-        whereArgs: [normalizedDate.millisecondsSinceEpoch],
+        where: '${DatabaseConstants.columnAssignedDate} = ? AND ${DatabaseConstants.columnTimeSlot} = ?',
+        whereArgs: [normalizedDate.millisecondsSinceEpoch, timeSlot],
       );
     } catch (e, stackTrace) {
       ErrorLogger.log('Failed to unassign outfit from date: $e', context: 'OutfitRepository.delete', error: e, stackTrace: stackTrace);
@@ -461,7 +464,7 @@ class OutfitRepositoryImpl implements OutfitRepository {
 
       // Join outfit_calendar and outfits tables
       final results = await db.rawQuery('''
-        SELECT o.*, oc.${DatabaseConstants.columnAssignedDate}
+        SELECT o.*, oc.${DatabaseConstants.columnAssignedDate}, oc.${DatabaseConstants.columnTimeSlot}, oc.${DatabaseConstants.columnEventName}, oc.${DatabaseConstants.columnStartTime}
         FROM ${DatabaseConstants.tableOutfits} o
         INNER JOIN ${DatabaseConstants.tableOutfitCalendar} oc
         ON o.${DatabaseConstants.columnId} = oc.${DatabaseConstants.columnOutfitId}
@@ -486,12 +489,15 @@ class OutfitRepositoryImpl implements OutfitRepository {
             .map((row) => row[DatabaseConstants.columnClothingItemId] as String)
             .toList();
 
-        // Get assigned date from the join result
+        // Get assigned date and optional fields from the join result
         final assignedDate = DateTime.fromMillisecondsSinceEpoch(
           outfitMap[DatabaseConstants.columnAssignedDate] as int,
         );
+        final timeSlot = outfitMap[DatabaseConstants.columnTimeSlot] as String?;
+        final eventName = outfitMap[DatabaseConstants.columnEventName] as String?;
+        final startTime = outfitMap[DatabaseConstants.columnStartTime] as String?;
 
-        outfits.add(_fromMap(outfitMap, itemIds, assignedDate: assignedDate));
+        outfits.add(_fromMap(outfitMap, itemIds, assignedDate: assignedDate, timeSlot: timeSlot, eventName: eventName, startTime: startTime));
       }
 
       return outfits;
@@ -551,12 +557,18 @@ class OutfitRepositoryImpl implements OutfitRepository {
     Map<String, dynamic> map,
     List<String> itemIds, {
     DateTime? assignedDate,
+    String? timeSlot,
+    String? eventName,
+    String? startTime,
   }) {
     return Outfit(
       id: map[DatabaseConstants.columnId] as String,
       name: map[DatabaseConstants.columnName] as String,
       itemIds: itemIds,
       assignedDate: assignedDate,
+      timeSlot: timeSlot,
+      eventName: eventName,
+      startTime: startTime,
       vibe: map[DatabaseConstants.columnVibe] as String?,
       createdDate: DateTime.fromMillisecondsSinceEpoch(
         map[DatabaseConstants.columnCreatedAt] as int,

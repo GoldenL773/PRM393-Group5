@@ -5,6 +5,8 @@ import 'package:goldfit_frontend/shared/providers/app_state.dart';
 import 'package:goldfit_frontend/shared/models/outfit.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 import 'package:goldfit_frontend/features/planner/planner_viewmodel.dart';
+import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
+import 'package:add_2_calendar/add_2_calendar.dart';
 
 /// Planner screen displaying calendar view for outfit planning
 /// Shows week/month toggle, calendar widget, and outfit assignment interface
@@ -45,7 +47,6 @@ class _PlannerScreenState extends State<PlannerScreen> {
     final appState = Provider.of<AppState>(context);
     final viewModel = Provider.of<PlannerViewModel>(context);
     final calendarView = appState.calendarView;
-    final assignedOutfit = viewModel.getOutfitForDate(_selectedDay);
 
     return Scaffold(
       appBar: AppBar(
@@ -165,8 +166,8 @@ class _PlannerScreenState extends State<PlannerScreen> {
                 ),
                 calendarBuilders: CalendarBuilders(
                   markerBuilder: (context, date, events) {
-                    final outfit = viewModel.getOutfitForDate(date);
-                    if (outfit != null) {
+                    final outfit = viewModel.hasAnyOutfitForDate(date) ? true : false;
+                    if (outfit) {
                       return Positioned(
                         bottom: 1,
                         child: Container(
@@ -186,62 +187,264 @@ class _PlannerScreenState extends State<PlannerScreen> {
             ),
           ),
           
-          // Selected date outfit display and assign button
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _formatSelectedDate(_selectedDay),
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: GoldFitTheme.textDark,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                
-                if (assignedOutfit != null) ...[
-                  // Display assigned outfit
-                  _OutfitDisplay(
-                    outfit: assignedOutfit,
-                    onTap: () => _showOutfitDetails(context, assignedOutfit),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => _showOutfitPicker(context, viewModel),
-                    child: const Text('Change Outfit'),
-                  ),
-                ] else ...[
-                  // No outfit assigned
-                  Text(
-                    'No outfit assigned for this date',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: GoldFitTheme.textMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => _showOutfitPicker(context, viewModel),
-                    child: const Text('Assign Outfit'),
-                  ),
+          // Selected date outfit display
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -2)),
                 ],
-              ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(_formatSelectedDate(_selectedDay), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: GoldFitTheme.textDark)),
+                    const SizedBox(height: 16),
+                    _buildMorningCard(context, viewModel),
+                    const SizedBox(height: 16),
+                    _buildAfternoonCard(context, viewModel),
+                    const SizedBox(height: 16),
+                    _buildEveningCard(context, viewModel),
+                    const SizedBox(height: 24),
+                    _buildActionButtons(context, viewModel),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptySlotCard(BuildContext context, PlannerViewModel viewModel, String title, String timeSlot) {
+    return Container(
+      decoration: BoxDecoration(
+        color: GoldFitTheme.backgroundLight,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: GoldFitTheme.yellow200, width: 1),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.add_circle_outline, color: GoldFitTheme.textMedium),
+              const SizedBox(width: 12),
+              Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: GoldFitTheme.textMedium)),
+            ],
+          ),
+          GestureDetector(
+            onTap: () => _showOutfitPicker(context, viewModel, timeSlot),
+            child: Text('Assign', style: TextStyle(fontSize: 12, color: GoldFitTheme.primary, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMorningCard(BuildContext context, PlannerViewModel viewModel) {
+    final outfit = viewModel.getOutfitForDateAndTime(_selectedDay, 'morning');
+    if (outfit == null) return _buildEmptySlotCard(context, viewModel, 'Morning', 'morning');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: GoldFitTheme.yellow100,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Morning', style: TextStyle(fontWeight: FontWeight.bold, color: GoldFitTheme.textMedium)),
+              GestureDetector(
+                onTap: () => _showOutfitPicker(context, viewModel, 'morning'),
+                child: Text('Edit', style: TextStyle(fontSize: 12, color: GoldFitTheme.primary, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => _showOutfitDetails(context, outfit),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: 80,
+                    height: 100,
+                    color: Colors.white,
+                    child: outfit.modelImagePath != null 
+                      ? LocalImageWidget(imagePath: outfit.modelImagePath!, width: 80, height: 100, fit: BoxFit.cover)
+                      : const Icon(Icons.checkroom, color: GoldFitTheme.gold600, size: 40),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(outfit.eventName ?? outfit.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'manrope', color: GoldFitTheme.textDark)),
+                      const SizedBox(height: 4),
+                      Text(outfit.startTime ?? '9:00 AM', style: TextStyle(color: GoldFitTheme.textMedium)),
+                      const SizedBox(height: 8),
+                      if (outfit.vibe != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: GoldFitTheme.primary.withOpacity(0.3)),
+                          ),
+                          child: Text(outfit.vibe!, style: TextStyle(fontSize: 10, color: GoldFitTheme.primary, fontWeight: FontWeight.bold)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAfternoonCard(BuildContext context, PlannerViewModel viewModel) {
+    final outfit = viewModel.getOutfitForDateAndTime(_selectedDay, 'afternoon');
+    if (outfit == null) return _buildEmptySlotCard(context, viewModel, 'Afternoon', 'afternoon');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Afternoon', style: TextStyle(fontWeight: FontWeight.bold, color: GoldFitTheme.textMedium)),
+              GestureDetector(
+                onTap: () => _showOutfitPicker(context, viewModel, 'afternoon'),
+                child: Text('Edit', style: TextStyle(fontSize: 12, color: GoldFitTheme.primary, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () => _showOutfitDetails(context, outfit),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: GoldFitTheme.yellow200),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+            ),
+            child: Row(
+              children: [
+                 Icon(Icons.shopping_bag_outlined, color: GoldFitTheme.primary),
+                 const SizedBox(width: 12),
+                 Expanded(
+                   child: Text(outfit.eventName ?? outfit.name, style: TextStyle(fontWeight: FontWeight.bold, color: GoldFitTheme.textDark)),
+                 ),
+                 Icon(Icons.arrow_forward_ios, size: 16, color: GoldFitTheme.textLight),
+              ],
+            )
+          ),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton(
+          onPressed: () => _showOutfitPicker(context, viewModel, 'afternoon'),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: GoldFitTheme.primary, width: 1),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            padding: const EdgeInsets.symmetric(vertical: 16)
+          ),
+          child: Text('COMPLETE AFTERNOON LOOK', style: TextStyle(color: GoldFitTheme.primary, letterSpacing: 1.2, fontWeight: FontWeight.bold)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEveningCard(BuildContext context, PlannerViewModel viewModel) {
+    final outfit = viewModel.getOutfitForDateAndTime(_selectedDay, 'evening');
+    if (outfit != null) {
+      return Container(
+        decoration: BoxDecoration(color: GoldFitTheme.yellow100, borderRadius: BorderRadius.circular(24)),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Evening', style: TextStyle(fontWeight: FontWeight.bold, color: GoldFitTheme.textMedium)),
+                GestureDetector(
+                  onTap: () => _showOutfitPicker(context, viewModel, 'evening'),
+                  child: Text('Edit', style: TextStyle(fontSize: 12, color: GoldFitTheme.primary, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => _showOutfitDetails(context, outfit),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: 80, height: 100, color: Colors.white,
+                      child: outfit.modelImagePath != null 
+                        ? LocalImageWidget(imagePath: outfit.modelImagePath!, width: 80, height: 100, fit: BoxFit.cover)
+                        : const Icon(Icons.checkroom, color: GoldFitTheme.gold600, size: 40),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(outfit.eventName ?? outfit.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'manrope', color: GoldFitTheme.textDark)),
+                        const SizedBox(height: 4),
+                        Text(outfit.startTime ?? '7:00 PM', style: TextStyle(color: GoldFitTheme.textMedium)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          ],
+        )
+      );
+    }
+    
+    return Container(
+      height: 120,
+      decoration: BoxDecoration(
+        color: GoldFitTheme.textDark,
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          colors: [GoldFitTheme.textDark.withOpacity(0.9), GoldFitTheme.gold600.withOpacity(0.5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        )
+      ),
+      child: Center(
+        child: ElevatedButton(
+          onPressed: () => _showOutfitPicker(context, viewModel, 'evening'),
+          style: ElevatedButton.styleFrom(
+             backgroundColor: Colors.white,
+             foregroundColor: Colors.black,
+             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          ),
+          child: const Text('SELECT OUTFIT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+        ),
       ),
     );
   }
@@ -252,6 +455,101 @@ class _PlannerScreenState extends State<PlannerScreen> {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  Widget _buildActionButtons(BuildContext context, PlannerViewModel viewModel) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _handleCloneDay(context, viewModel),
+            icon: const Icon(Icons.copy, size: 18),
+            label: const Text('Clone Day', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: GoldFitTheme.primary,
+              side: const BorderSide(color: GoldFitTheme.primary),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () => _handleAddToCalendar(context, viewModel),
+            icon: const Icon(Icons.calendar_month, size: 18),
+            label: const Text('Add to Calendar', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: GoldFitTheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _handleCloneDay(BuildContext context, PlannerViewModel viewModel) async {
+    if (!viewModel.hasAnyOutfitForDate(_selectedDay)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No outfits to clone on this date')),
+      );
+      return;
+    }
+
+    final targetDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDay.add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (targetDate != null && context.mounted) {
+      await viewModel.cloneDay(_selectedDay, targetDate);
+      if (viewModel.error != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(viewModel.error!)));
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Day cloned to ${_formatSelectedDate(targetDate)}')),
+        );
+      }
+    }
+  }
+
+  void _handleAddToCalendar(BuildContext context, PlannerViewModel viewModel) {
+    if (!viewModel.hasAnyOutfitForDate(_selectedDay)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No outfits to add to calendar')),
+      );
+      return;
+    }
+    
+    final morningOutfit = viewModel.getOutfitForDateAndTime(_selectedDay, 'morning');
+    final afternoonOutfit = viewModel.getOutfitForDateAndTime(_selectedDay, 'afternoon');
+    final eveningOutfit = viewModel.getOutfitForDateAndTime(_selectedDay, 'evening');
+    
+    void addEvent(Outfit outfit, int hour) {
+        final Event event = Event(
+          title: outfit.eventName ?? 'GoldFit - ${outfit.name}',
+          description: 'Wearing: ${outfit.name}',
+          location: '',
+          startDate: DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day, hour, 0),
+          endDate: DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day, hour + 2, 0),
+          allDay: false,
+        );
+        Add2Calendar.addEvent2Cal(event);
+    }
+    
+    if (morningOutfit != null) addEvent(morningOutfit, 9);  // 9 AM
+    if (afternoonOutfit != null) addEvent(afternoonOutfit, 13); // 1 PM
+    if (eveningOutfit != null) addEvent(eveningOutfit, 19); // 7 PM
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Opening calendar app...')),
+    );
   }
 
   void _showOutfitDetails(BuildContext context, Outfit outfit) {
@@ -299,7 +597,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
     );
   }
 
-  void _showOutfitPicker(BuildContext context, PlannerViewModel viewModel) {
+  void _showOutfitPicker(BuildContext context, PlannerViewModel viewModel, String timeSlot) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -354,7 +652,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                                   color: GoldFitTheme.textLight,
                                 ),
                                 onTap: () async {
-                                  await viewModel.assignOutfit(outfit.id, _selectedDay);
+                                  await viewModel.assignOutfit(outfit.id, _selectedDay, timeSlot);
                                   
                                   if (context.mounted) {
                                     Navigator.pop(context);
@@ -430,69 +728,3 @@ class _ViewToggleButton extends StatelessWidget {
   }
 }
 
-/// Widget to display assigned outfit
-class _OutfitDisplay extends StatelessWidget {
-  final Outfit outfit;
-  final VoidCallback onTap;
-
-  const _OutfitDisplay({
-    required this.outfit,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: GoldFitTheme.yellow100,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: GoldFitTheme.yellow200,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.checkroom,
-              color: GoldFitTheme.gold600,
-              size: 32,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    outfit.name,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: GoldFitTheme.textDark,
-                    ),
-                  ),
-                  if (outfit.vibe != null)
-                    Text(
-                      outfit.vibe!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: GoldFitTheme.textMedium,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: GoldFitTheme.textLight,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

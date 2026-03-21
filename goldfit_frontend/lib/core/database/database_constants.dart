@@ -6,7 +6,7 @@ library;
 class DatabaseConstants {
   // Database configuration
   static const String databaseName = 'goldfit.db';
-  static const int databaseVersion = 3;
+  static const int databaseVersion = 4;
 
   // Table names
   static const String tableClothingItems = 'clothing_items';
@@ -49,6 +49,9 @@ class DatabaseConstants {
 
   // outfit_calendar table columns
   static const String columnAssignedDate = 'assigned_date';
+  static const String columnTimeSlot = 'time_slot';
+  static const String columnEventName = 'event_name';
+  static const String columnStartTime = 'start_time';
 
   // usage_history table columns
   static const String columnWornDate = 'worn_date';

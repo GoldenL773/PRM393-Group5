@@ -251,10 +251,12 @@ class MockDataProvider {
     
     // Generate mock weather data
     _currentWeather = WeatherData(
-      temperature: 25.0,
-      condition: 'Partly Cloudy',
-      location: 'Detecting...',
+      temperature: 28.0,
+      condition: 'Sunny',
+      location: 'Quận 1, TP. HCM',
       timestamp: DateTime.now(),
+      isDay: DateTime.now().hour > 6 && DateTime.now().hour < 18,
+      season: Season.summer,
     );
     
     // Generate 25 diverse clothing items across all categories
@@ -482,6 +484,7 @@ class MockDataProvider {
         assignedDate: assignedDate,
         vibe: vibe,
         createdDate: createdDate,
+        isFavorite: random.nextBool(), // Randomly mark some as favorites
       ));
     }
     

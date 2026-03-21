@@ -528,6 +528,9 @@ class OutfitRepositoryImpl implements OutfitRepository {
       DatabaseConstants.columnVibe: outfit.vibe,
       DatabaseConstants.columnThumbnailPath: null, // Future feature
       DatabaseConstants.columnWeatherContext: null, // Future feature
+      DatabaseConstants.columnIsFavorite: outfit.isFavorite ? 1 : 0,
+      DatabaseConstants.columnModelImagePath: outfit.modelImagePath,
+      DatabaseConstants.columnResultImagePath: outfit.resultImagePath,
       DatabaseConstants.columnCreatedAt: outfit.createdDate.millisecondsSinceEpoch,
       DatabaseConstants.columnUpdatedAt: DateTime.now().millisecondsSinceEpoch,
     };
@@ -558,6 +561,9 @@ class OutfitRepositoryImpl implements OutfitRepository {
       createdDate: DateTime.fromMillisecondsSinceEpoch(
         map[DatabaseConstants.columnCreatedAt] as int,
       ),
+      isFavorite: (map[DatabaseConstants.columnIsFavorite] as int?) == 1,
+      modelImagePath: map[DatabaseConstants.columnModelImagePath] as String?,
+      resultImagePath: map[DatabaseConstants.columnResultImagePath] as String?,
     );
   }
 }

@@ -17,6 +17,7 @@ class ImageStorageManager {
   static final ImageStorageManager _instance = ImageStorageManager._internal();
   static const String _imagesFolder = 'images';
   static const String _thumbnailsFolder = 'thumbnails';
+  static const String _cleanedGarmentsFolder = 'cleaned_garments'; // Persistent per-item cleaned images
   // Thumbnail size for future implementation of proper image resizing
   // static const int _thumbnailSize = 200;
   
@@ -73,6 +74,39 @@ class ImageStorageManager {
     } catch (e) {
       throw FileSystemException('Failed to save image bytes: $e');
     }
+  }
+
+  /// Saves a cleaned (background-removed) garment image for a specific item ID.
+  /// Uses the item ID as the filename so it can always be found by ID.
+  /// Returns the absolute path where the image was saved.
+  Future<String> saveCleanedGarment(String itemId, Uint8List imageBytes) async {
+    try {
+      final Directory docsDir = await getApplicationDocumentsDirectory();
+      final Directory cleanedDir = Directory(path.join(docsDir.path, _cleanedGarmentsFolder));
+      if (!await cleanedDir.exists()) {
+        await cleanedDir.create(recursive: true);
+      }
+      
+      final String imagePath = path.join(cleanedDir.path, '$itemId.png');
+      final File imageFile = File(imagePath);
+      await imageFile.writeAsBytes(imageBytes);
+      return imagePath; // Return absolute path
+    } catch (e) {
+      throw FileSystemException('Failed to save cleaned garment: $e');
+    }
+  }
+
+  /// Returns the expected absolute path for a cleaned garment image for the given item ID.
+  /// Does NOT check if the file exists.
+  Future<String> getCleanedGarmentPath(String itemId) async {
+    final Directory docsDir = await getApplicationDocumentsDirectory();
+    return path.join(docsDir.path, _cleanedGarmentsFolder, '$itemId.png');
+  }
+
+  /// Returns true if a cleaned garment image exists for the given item ID.
+  Future<bool> cleanedGarmentExists(String itemId) async {
+    final filePath = await getCleanedGarmentPath(itemId);
+    return File(filePath).exists();
   }
 
   /// Saves an image file to local storage with a unique filename.

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/models/outfit.dart';
@@ -22,18 +23,23 @@ class HomeViewModel extends ChangeNotifier {
   // State properties
   List<Outfit> _recommendations = [];
   Map<String, List<ClothingItem>> _recommendationItems = {};
+  List<ClothingItem> _recommendedItems = []; // Individual items filtered by season+color
   WeatherData? _weather;
   bool _isLoading = false;
   String? _error;
   String? _stylingAdvice;
+  // Debug log for AI responses
+  String? _aiDebugLog;
 
   // Getters
   List<Outfit> get recommendations => _recommendations;
   Map<String, List<ClothingItem>> get recommendationItems => _recommendationItems;
+  List<ClothingItem> get recommendedItems => _recommendedItems;
   WeatherData? get weather => _weather;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get stylingAdvice => _stylingAdvice;
+  String? get aiDebugLog => _aiDebugLog;
 
   HomeViewModel(this._outfitRepository, this._clothingRepository) {
     _initWeather();
@@ -57,21 +63,18 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   /// Loads weather-based outfit recommendations from the repository.
-  /// 
-  /// Sets loading state, clears errors, and fetches recommended outfits.
-  /// In the current implementation, this fetches all outfits and takes the top 3.
-  /// Future implementations could integrate with a weather service to provide
-  /// context-aware recommendations based on temperature and conditions.
-  /// Updates error state if the operation fails.
+  /// Uses AI to determine target seasons and colors, then filters individual
+  /// clothing items that match those criteria.
   Future<void> loadRecommendations() async {
     _setLoading(true);
     _setError(null);
 
     try {
-      // Fetch all outfits
+      // Fetch all clothing items and outfits
+      final allItems = await _clothingRepository.getAll();
       final allOutfits = await _outfitRepository.getAll();
       
-      // Load items for each outfit
+      // Load items for each outfit (for outfit-based display)
       final Map<String, List<ClothingItem>> itemsMap = {};
       for (final outfit in allOutfits) {
         final List<ClothingItem> items = [];
@@ -84,35 +87,69 @@ class HomeViewModel extends ChangeNotifier {
         itemsMap[outfit.id] = items;
       }
       
-      // Let AI pick the best outfit
-      List<Outfit> recommendedOutfits = allOutfits.toList();
-      if (allOutfits.isNotEmpty && _weather != null) {
+      List<String> targetSeasons = [];
+      List<String> targetColors = [];
+
+      if (_weather != null) {
         final weatherStr = '${_weather!.condition}, ${_weather!.temperature}°C';
-        final bestId = await _geminiService.recommendBestOutfit(
-          allOutfits, 
-          itemsMap, 
-          weatherStr
-        );
-        
-        if (bestId != null) {
-          final bestIndex = recommendedOutfits.indexWhere((o) => o.id == bestId);
-          if (bestIndex != -1) {
-            final bestOutfit = recommendedOutfits.removeAt(bestIndex);
-            recommendedOutfits.insert(0, bestOutfit);
+        final jsonResponse = await _geminiService.getStructuredRecommendationCriteria(weatherStr);
+
+        // Extract json from potential markdown block
+        String? cleanJson = jsonResponse;
+        if (cleanJson != null) {
+          final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(cleanJson);
+          cleanJson = jsonMatch?.group(0);
+        }
+
+        _aiDebugLog = 'Weather: $weatherStr\nAI Response: $jsonResponse\nExtracted JSON: $cleanJson';
+
+        if (cleanJson != null) {
+          try {
+            final decoded = jsonDecode(cleanJson) as Map<String, dynamic>;
+            if (decoded['seasons'] != null) {
+              targetSeasons = List<String>.from(decoded['seasons']);
+            }
+            if (decoded['colors'] != null) {
+              targetColors = List<String>.from(decoded['colors']);
+            }
+          } catch (e) {
+            // ignore: avoid_print
+            print('Error parsing AI json: $e | raw: $cleanJson');
+            _aiDebugLog = '${_aiDebugLog}\nParse error: $e';
           }
         }
+      }
+
+      if (targetSeasons.isEmpty) {
+        targetSeasons = ['summer', 'spring']; // Fallback
+      }
+
+      // 1. Filter INDIVIDUAL ITEMS by season and optionally color
+      _recommendedItems = _filterRecommendedItems(allItems, targetSeasons, targetColors);
+
+      // 2. Also sort outfits by season match for the outfit-based section
+      List<Outfit> recommendedOutfits = allOutfits.toList();
+      recommendedOutfits.sort((a, b) {
+        final aItems = itemsMap[a.id] ?? [];
+        final bItems = itemsMap[b.id] ?? [];
         
-        // Take top 3
-        final topOutfits = recommendedOutfits.take(3).toList();
-        _recommendations = topOutfits;
-        _recommendationItems = itemsMap;
+        final aMatchCount = aItems.where((i) => i.seasons.any((s) => targetSeasons.contains(s.toString().split('.').last.toLowerCase()))).length;
+        final bMatchCount = bItems.where((i) => i.seasons.any((s) => targetSeasons.contains(s.toString().split('.').last.toLowerCase()))).length;
         
-        // Get AI styling advice based on top outfit and weather
-        final topItems = itemsMap[topOutfits.first.id] ?? [];
-        _stylingAdvice = await _geminiService.getStylingAdvice(topItems, weatherStr);
-      } else {
-        _recommendations = allOutfits.take(3).toList();
-        _recommendationItems = itemsMap;
+        return bMatchCount.compareTo(aMatchCount); // Descending
+      });
+      
+      // Take top 3 outfits
+      final topOutfits = recommendedOutfits.take(3).toList();
+      _recommendations = topOutfits;
+      _recommendationItems = itemsMap;
+      
+      // Get AI styling advice based on top outfit and weather
+      if (_weather != null && allItems.isNotEmpty && _recommendedItems.isNotEmpty) {
+        final weatherStr = '${_weather!.condition}, ${_weather!.temperature}°C';
+        // Use first 3 recommended items for advice
+        final adviceItems = _recommendedItems.take(3).toList();
+        _stylingAdvice = await _geminiService.getStylingAdvice(adviceItems, weatherStr);
       }
       
       notifyListeners();
@@ -123,20 +160,61 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Filters clothing items by target seasons and optionally by color keywords.
+  List<ClothingItem> _filterRecommendedItems(
+    List<ClothingItem> allItems,
+    List<String> targetSeasons,
+    List<String> targetColors,
+  ) {
+    // Normalize targets
+    final normalizedSeasons = targetSeasons.map((s) => s.toLowerCase().trim()).toSet();
+    final normalizedColors = targetColors.map((c) => c.toLowerCase().trim()).toSet();
+
+    // First: items that match both season AND color
+    List<ClothingItem> seasonAndColorMatch = [];
+    // Second: items that match only season
+    List<ClothingItem> seasonOnlyMatch = [];
+
+    for (final item in allItems) {
+      final itemSeasons = item.seasons
+          .map((s) => s.toString().split('.').last.toLowerCase())
+          .toSet();
+      
+      // Check season match: 'fall' = 'autumn' alias
+      final matchesSeason = itemSeasons.any((itemSeason) {
+        return normalizedSeasons.contains(itemSeason) ||
+            (itemSeason == 'fall' && normalizedSeasons.contains('autumn')) ||
+            (itemSeason == 'autumn' && normalizedSeasons.contains('fall'));
+      });
+
+      if (!matchesSeason) continue;
+
+      // Check color match (partial/keyword match)
+      final itemColorLower = item.color.toLowerCase();
+      final matchesColor = normalizedColors.isEmpty ||
+          normalizedColors.any((targetColor) =>
+              itemColorLower.contains(targetColor) ||
+              targetColor.contains(itemColorLower));
+
+      if (matchesSeason && matchesColor) {
+        seasonAndColorMatch.add(item);
+      } else {
+        seasonOnlyMatch.add(item);
+      }
+    }
+
+    // Return best matches first, then season-only matches; limit to 10
+    final combined = [...seasonAndColorMatch, ...seasonOnlyMatch];
+    return combined.take(10).toList();
+  }
+
   /// Updates the weather data.
-  /// 
-  /// This method allows the UI or a weather service to update the current
-  /// weather information. Future implementations could trigger automatic
-  /// recommendation updates when weather changes.
   void updateWeather(WeatherData weatherData) {
     _weather = weatherData;
     notifyListeners();
   }
 
   /// Refreshes recommendations and weather data.
-  /// 
-  /// Convenience method that reloads recommendations. Can be called by
-  /// pull-to-refresh gestures in the UI.
   Future<void> refresh() async {
     await loadRecommendations();
   }

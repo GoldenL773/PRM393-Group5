@@ -30,16 +30,16 @@ class OutfitCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: GoldFitTheme.surfaceLight,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(32),
           border: Border.all(
-            color: const Color(0xFFF1F5F9), // Subtle border from theme
+            color: GoldFitTheme.yellow200.withOpacity(0.1), // Ghost border
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -87,8 +87,8 @@ class OutfitCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: GoldFitTheme.backgroundDark,
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
+          topLeft: Radius.circular(32),
+          topRight: Radius.circular(32),
         ),
       ),
       child: items.isEmpty
@@ -156,7 +156,7 @@ class OutfitCard extends StatelessWidget {
         child: Icon(
           _getIconForType(item.type),
           size: 32,
-          color: Colors.white.withValues(alpha: 0.7),
+          color: Colors.white.withOpacity(0.7),
         ),
       ),
     );
@@ -168,10 +168,10 @@ class OutfitCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: GoldFitTheme.yellow100,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(99),
         border: Border.all(
-          color: GoldFitTheme.yellow200,
-          width: 1,
+          color: GoldFitTheme.yellow200.withOpacity(0.2),
+          width: 0.5,
         ),
       ),
       child: Text(

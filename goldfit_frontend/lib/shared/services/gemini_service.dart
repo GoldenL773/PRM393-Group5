@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
-import 'package:goldfit_frontend/shared/models/outfit.dart';
+import 'package:goldfit_frontend/shared/utils/error_logger.dart';
 
 class GeminiService {
   final GenerativeModel _textModel;
@@ -33,6 +33,7 @@ class GeminiService {
       return null; // Fallback
     }
 
+    // ignore: avoid_print
     print('DEBUG: Calling Gemini API model: $model');
     try {
       final response = await http.post(
@@ -41,6 +42,7 @@ class GeminiService {
         body: jsonEncode(requestBody),
       );
 
+      // ignore: avoid_print
       print('DEBUG: Gemini API Response Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
@@ -54,6 +56,7 @@ class GeminiService {
               orElse: () => null,
             );
             if (inlineData != null) {
+              // ignore: avoid_print
               print('DEBUG: Gemini API successfully returned an image inlineData.');
               return inlineData['inlineData']['data'] as String; // Base64
             }
@@ -65,18 +68,22 @@ class GeminiService {
             );
             if (textPart != null) {
               final text = textPart['text'] as String;
+              // ignore: avoid_print
               print('DEBUG: Gemini API returned text instead of image: $text');
               throw Exception('Gemini returned text instead of image: $text');
             }
           }
         }
+        // ignore: avoid_print
         print('DEBUG: No inlineData found in response: ${response.body}');
         throw Exception('No image data found in response.');
       } else {
+        // ignore: avoid_print
         print('DEBUG: Gemini API Error: ${response.statusCode} - ${response.body}');
         throw Exception('API Error: ${response.statusCode}');
       }
     } catch (e) {
+      // ignore: avoid_print
       print('DEBUG: Error calling Gemini REST API: $e');
     }
     return null;
@@ -137,7 +144,7 @@ class GeminiService {
 
       // Add text prompt
       parts.add({
-        "text": "You are an expert virtual try-on AI. You will be given a model image (first) and garment images (subsequent). Your task is to create a new photorealistic image where the person from the model image is wearing the clothing from the garment images.\n\n**Crucial Rules:**\n1. Complete Garment Replacement: You MUST completely REMOVE and REPLACE the existing clothing item. No part of the original clothing should be visible.\n2. Preserve the Model: The person's face, hair, body shape, and pose MUST remain unchanged.\n3. Preserve the Background: The entire background MUST be preserved perfectly.\n4. Apply the Garment: Realistically fit the new garment onto the person with natural folds, shadows, and lighting.\n5. Output: Return ONLY the final, edited image. Do not include any text."
+        "text": "You are an expert virtual try-on AI. You will be given a 'model image' and a 'garment image'. Your task is to create a new photorealistic image where the person from the 'model image' is wearing the clothing from the 'garment image'.\n\n**Crucial Rules:**\n1.  **Complete Garment Replacement:** You MUST completely REMOVE and REPLACE the clothing item worn by the person in the 'model image' with the new garment. No part of the original clothing (e.g., collars, sleeves, patterns) should be visible in the final image.\n2.  **Preserve the Model:** The person's face, hair, body shape, and pose from the 'model image' MUST remain unchanged.\n3.  **Preserve the Background:** The entire background from the 'model image' MUST be preserved perfectly.\n4.  **Apply the Garment:** Realistically fit the new garment onto the person. It should adapt to their pose with natural folds, shadows, and lighting consistent with the original scene.\n5.  **Output:** Return ONLY the final, edited image. Do not include any text."
       });
 
       final requestBody = {
@@ -199,7 +206,7 @@ class GeminiService {
   }
 
   /// Background Removal
-  /// Uses Remove.bg API if REMOVE_BG_API_KEY is available in .env, otherwise falls back to Gemini.
+  /// Uses Remove.bg API strictly.
   Future<String?> removeBackground(String imagePath) async {
     try {
       final file = File(imagePath);
@@ -207,83 +214,64 @@ class GeminiService {
 
       final bytes = await file.readAsBytes();
       
-      // Try Remove.bg first
-      final removeBgKey = dotenv.env['REMOVE_BG_API_KEY'];
-      if (removeBgKey != null && removeBgKey.isNotEmpty && removeBgKey != 'PLACEHOLDER_REMOVE_BG_KEY') {
-        print('DEBUG: Using Remove.bg API for background removal');
-        final request = http.MultipartRequest('POST', Uri.parse('https://api.remove.bg/v1.0/removebg'));
-        request.headers['X-Api-Key'] = removeBgKey;
-        request.files.add(http.MultipartFile.fromBytes('image_file', bytes, filename: 'image.jpg'));
-        request.fields['size'] = 'auto';
+      // Use Remove.bg API token directly as requested by the user
+      final removeBgKey = dotenv.env['REMOVE_BG_API_KEY'] ?? 'vhooNUm1h6akn3RmiSG8eMfP';
+      
+      // ignore: avoid_print
+      print('DEBUG: Using Remove.bg API for background removal');
+      final request = http.MultipartRequest('POST', Uri.parse('https://api.remove.bg/v1.0/removebg'));
+      request.headers['X-Api-Key'] = removeBgKey;
+      request.files.add(http.MultipartFile.fromBytes('image_file', bytes, filename: 'image.jpg'));
+      request.fields['size'] = 'auto';
 
-        final response = await request.send();
-        if (response.statusCode == 200) {
-          final respBytes = await response.stream.toBytes();
-          return base64Encode(respBytes);
-        } else {
-          print('DEBUG: Remove.bg API failed with status ${response.statusCode}, falling back to Gemini.');
-        }
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final respBytes = await response.stream.toBytes();
+        return base64Encode(respBytes);
+      } else {
+        // ignore: avoid_print
+        print('DEBUG: Remove.bg API failed with status ${response.statusCode}');
+        return null;
       }
-
-      print('DEBUG: Using Gemini API for background removal');
-      final requestBody = {
-        "contents": [
-          {
-            "parts": [
-              {"inlineData": {"mimeType": "image/jpeg", "data": base64Encode(bytes)}},
-              {
-                "text": "Remove the background and any person/mannequin from this image. Keep ONLY the clothing item (subject) with a completely transparent or solid white background. Return ONLY the final image."
-              }
-            ]
-          }
-        ],
-        "generationConfig": {
-          "responseModalities": ["IMAGE"]
-        }
-      };
-
-      return await _generateImageViaRest('gemini-2.5-flash-image', requestBody);
     } catch (e) {
       print('Background Removal Error: $e');
       return null;
     }
   }
 
-  /// Get the best outfit recommendation based on weather
-  Future<String?> recommendBestOutfit(List<Outfit> outfits, Map<String, List<ClothingItem>> outfitsItems, String weather) async {
+  /// Get structured outfit recommendation categories/seasons based on weather using Gemini text model
+  Future<String?> getStructuredRecommendationCriteria(String weather) async {
     try {
-      if (outfits.isEmpty) return null;
-
       if (_textApiKey == 'PLACEHOLDER_GEMINI_KEY') {
-        return outfits.first.id; // Fallback to first
+        return '{"seasons": ["summer"], "colors": ["white", "light blue", "beige"]}'; // Fallback
       }
 
-      final outfitDescriptions = outfits.map((o) {
-        final items = outfitsItems[o.id] ?? [];
-        final desc = items.map((e) => "${e.color} ${e.type.name}").join(", ");
-        return "ID: ${o.id} - Items: $desc";
-      }).join("\n");
-
       final prompt = '''
-You are a professional fashion stylist. The current weather is $weather.
-I have the following outfits available:
-$outfitDescriptions
+You are a professional fashion stylist. The current weather is: $weather.
+Based on this weather, return a JSON object with:
+- "seasons": array of appropriate clothing seasons. Allowed values: summer, winter, fall, spring.
+- "colors": array of 3-5 clothing color keywords that are appropriate for this weather.
 
-Based on the weather, please select the single best outfit ID from the list.
-Return ONLY the ID of the selected outfit, nothing else.
+Example for hot sunny day: {"seasons": ["summer", "spring"], "colors": ["white", "light blue", "beige", "yellow"]}
+Example for cold rainy day: {"seasons": ["winter", "fall"], "colors": ["gray", "black", "navy", "dark green"]}
+
+Return ONLY valid JSON without any markdown formatting.
       ''';
 
       final content = [Content.text(prompt)];
       final response = await _textModel.generateContent(content);
-      final recommendedId = response.text?.trim() ?? "";
+      final result = response.text?.trim() ?? '{"seasons": ["summer"], "colors": ["white", "blue"]}';
       
-      if (outfits.any((o) => o.id == recommendedId)) {
-        return recommendedId;
-      }
-      return outfits.first.id;
+      ErrorLogger.log(
+        'AI Recommendation Criteria Request:\nPrompt: $prompt\nResponse: $result',
+        severity: LogSeverity.info,
+        context: 'GeminiService.recommendationCriteria',
+      );
+      
+      return result;
     } catch (e) {
-      print('Error recommending outfit: $e');
-      return outfits.isNotEmpty ? outfits.first.id : null;
+      print('Error getting structured recommendation: $e');
+      return null;
     }
   }
   Future<String> getStylingAdvice(List<ClothingItem> items, String weather) async {
@@ -307,9 +295,18 @@ taking the weather into account. If the outfit is not suitable for the weather,
 gently suggest what to change.
       ''';
 
-      final content = [Content.text(prompt.replaceFirst('{weather}', weather).replaceFirst('{items}', itemDescriptions))];
+      final promptText = prompt.replaceFirst('{weather}', weather).replaceFirst('{items}', itemDescriptions);
+      final content = [Content.text(promptText)];
       final response = await _textModel.generateContent(content);
-      return response.text ?? "Looks great!";
+      final result = response.text ?? "Looks great!";
+      
+      ErrorLogger.log(
+        'AI Styling Advice Request:\nPrompt: $promptText\nResponse: $result',
+        severity: LogSeverity.info,
+        context: 'GeminiService.stylingAdvice',
+      );
+      
+      return result;
     } catch (e) {
       // ignore: avoid_print
       print('Error getting styling advice: $e');

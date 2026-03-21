@@ -5,25 +5,26 @@ import 'package:google_fonts/google_fonts.dart';
 /// Based on design reference in stitch_ai_personal_stylist_suggestions
 class GoldFitTheme {
   // Primary colors (from design reference)
-  static const Color primary = Color(0xFFF0F04C); // Bright yellow (#f0f04c)
-  static const Color backgroundLight = Color(0xFFFDFDF2); // Cream background (#fdfdf2)
-  static const Color backgroundDark = Color(0xFFFEFCE8); // Light yellow background (#fefce8)
+  static const Color primary = Color(0xFFC5A028); // Radiant gold (#C5A028)
+  static const Color backgroundLight = Color(0xFFFCFBF7); // Off-white background (#FCFBF7)
+  static const Color backgroundDark = Color(0xFFF9F7F0); // Subtle darker cream background
   static const Color surfaceLight = Color(0xFFFFFFFF); // White cards
   
   // Gold accent colors
-  static const Color gold600 = Color(0xFFCA8A04); // Dark gold for text
-  static const Color gold700 = Color(0xFFA16207); // Darker gold
-  static const Color yellow100 = Color(0xFFFEF9C3); // Light yellow surface
-  static const Color yellow200 = Color(0xFFFEF08A); // Yellow borders
+  static const Color gold600 = Color(0xFF745B00); // Deep gold for high-contrast text
+  static const Color gold700 = Color(0xFF564300); // Darkest gold for labels
+  static const Color yellow100 = Color(0xFFFFE08B); // Soft yellow surface/chips
+  static const Color yellow200 = Color(0xFFD0C5AF); // Neutral golden borders (outline variant)
   
   // Text colors
-  static const Color textDark = Color(0xFF1E293B); // Slate 900
+  static const Color textDark = Color(0xFF2C2C2C); // Grounding Secondary
   static const Color textMedium = Color(0xFF64748B); // Slate 500
   static const Color textLight = Color(0xFF94A3B8); // Slate 400
+  static const Color tertiary = Color(0xFFE6E1D6); // Soft beige secondary accent
   
   /// Get the light theme for the application
   static ThemeData get lightTheme {
-    final textTheme = GoogleFonts.montserratTextTheme(); // Thay đổi thành Montserrat cho thanh thoát hơn
+    final textTheme = GoogleFonts.interTextTheme(); // Body & Labels use Inter
     
     return ThemeData(
       primaryColor: primary,
@@ -35,10 +36,11 @@ class GoldFitTheme {
         foregroundColor: textDark,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.montserrat(
-          fontSize: 18,
-          fontWeight: FontWeight.w600, // Thanh thoát hơn bold
+        titleTextStyle: GoogleFonts.manrope(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
           color: textDark,
+          letterSpacing: -0.5,
         ),
       ),
       
@@ -47,11 +49,11 @@ class GoldFitTheme {
         unselectedItemColor: textLight,
         backgroundColor: Colors.white,
         type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: GoogleFonts.montserrat(
+        selectedLabelStyle: GoogleFonts.inter(
           fontSize: 10,
           fontWeight: FontWeight.w600,
         ),
-        unselectedLabelStyle: GoogleFonts.montserrat(
+        unselectedLabelStyle: GoogleFonts.inter(
           fontSize: 10,
           fontWeight: FontWeight.w500,
         ),
@@ -59,68 +61,67 @@ class GoldFitTheme {
       
       cardTheme: CardThemeData(
         color: surfaceLight,
-        elevation: 4, // Tăng elevation để đổ bóng rõ hơn
-        shadowColor: Colors.black.withOpacity(0.08), // Màu đổ bóng nhạt, mềm mại
+        elevation: 0, // No elevation as per "Digital Curator" system
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20), // Tăng bo góc cho hiện đại
-          side: const BorderSide(color: Color(0xFFF8FAFC), width: 1), // Viền siêu mờ
+          borderRadius: BorderRadius.circular(32), // High roundedness
+          side: BorderSide(color: yellow200.withOpacity(0.15), width: 1), // Ghost border
         ),
       ),
       
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: textDark,
-          elevation: 4, // Tăng elevation
-          shadowColor: primary.withOpacity(0.4), // Đổ bóng cùng tone vàng
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // Bo góc to hơn
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16), // Padding rộng hơn
-          textStyle: GoogleFonts.montserrat(
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)), // Pill-shaped
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+          textStyle: GoogleFonts.inter(
             fontSize: 16,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
           ),
         ),
       ),
       
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceLight,
+        fillColor: Color(0xFFF4F4F0), // surface-container-low
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16), // Bo góc to hơn
-          borderSide: const BorderSide(color: yellow200),
-        ),
-        enabledBorder: OutlineInputBorder( // Thêm enabledBorder để viền mờ khi chưa focus
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: primary, width: 2),
+          borderSide: BorderSide(color: primary.withOpacity(0.2), width: 1), // Ghost border on focus
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), // Tăng padding
-        labelStyle: GoogleFonts.montserrat(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        labelStyle: GoogleFonts.inter(
           color: textMedium,
           fontSize: 14,
         ),
       ),
       
       chipTheme: ChipThemeData(
-        backgroundColor: yellow100.withOpacity(0.5), // Giảm màu nền đi một chút
-        labelStyle: GoogleFonts.montserrat(
+        backgroundColor: yellow100.withOpacity(0.3),
+        labelStyle: GoogleFonts.inter(
           color: gold700, 
           fontSize: 12,
-          fontWeight: FontWeight.w600, // Đổi từ w500 -> w600
+          fontWeight: FontWeight.w600,
         ),
-        side: const BorderSide(color: Colors.transparent), // Bỏ viền cho hiện đại hơn
+        side: const BorderSide(color: Colors.transparent),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(99), // Pill-shaped
         ),
       ),
       
       snackBarTheme: SnackBarThemeData(
         backgroundColor: textDark,
-        contentTextStyle: GoogleFonts.montserrat(
+        contentTextStyle: GoogleFonts.inter(
           color: Colors.white,
           fontSize: 14,
         ),

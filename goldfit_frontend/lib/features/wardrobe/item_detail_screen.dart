@@ -93,8 +93,8 @@ class ItemDetailScreen extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 20,
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
                 ],
@@ -112,7 +112,7 @@ class ItemDetailScreen extends StatelessWidget {
                         margin: const EdgeInsets.only(bottom: 24),
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),
@@ -152,8 +152,8 @@ class ItemDetailScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: GoldFitTheme.primary.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
+                              color: GoldFitTheme.gold600.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
                               '\$${item.price!.toStringAsFixed(2)}',
@@ -242,7 +242,7 @@ class ItemDetailScreen extends StatelessWidget {
                           ),
                           side: BorderSide.none,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(99), // Pill-shaped
                           ),
                         );
                       }).toList(),
@@ -261,7 +261,7 @@ class ItemDetailScreen extends StatelessWidget {
                           foregroundColor: Colors.red, // Red text
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(99), // Pill-shaped
                           ),
                         ),
                         child: const Row(
@@ -309,7 +309,7 @@ class ItemDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: GoldFitTheme.backgroundLight,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.withOpacity(0.1)),
       ),
       child: Row(

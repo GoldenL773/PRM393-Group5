@@ -45,7 +45,7 @@ class DatabaseManager {
 
   /// Gets the database instance, initializing it on first access
   ///
-  /// Returns a Future<Database> that resolves to the initialized database.
+  /// Returns a `Future<Database>` that resolves to the initialized database.
   /// If the database is already initialized, returns the existing instance.
   /// Otherwise, initializes the database by calling _initDatabase.
   Future<Database> get database async {
@@ -61,7 +61,7 @@ class DatabaseManager {
   /// 2. Opens the database with the configured name and version
   /// 3. Sets up onCreate, onUpgrade, and onConfigure callbacks
   ///
-  /// Returns a Future<Database> with the initialized database instance.
+  /// Returns a `Future<Database>` with the initialized database instance.
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, DatabaseConstants.databaseName);

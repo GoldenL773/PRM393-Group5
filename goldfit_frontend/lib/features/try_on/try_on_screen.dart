@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:goldfit_frontend/shared/providers/app_state.dart';
@@ -11,6 +12,9 @@ import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 import 'package:goldfit_frontend/core/storage/image_storage_manager.dart';
 import 'package:goldfit_frontend/shared/services/gemini_service.dart';
 import 'package:goldfit_frontend/shared/services/pose_detection_service.dart';
+import 'package:goldfit_frontend/features/wardrobe/wardrobe_viewmodel.dart';
+import 'package:goldfit_frontend/features/favorites/favorites_viewmodel.dart';
+import 'package:uuid/uuid.dart';
 
 /// Try-On screen for virtual try-on with Quick Try and Realistic Fitting modes
 /// Displays base photo, mode toggle, clothing selector, and save outfit button
@@ -28,7 +32,6 @@ class _TryOnScreenState extends State<TryOnScreen> {
   bool _hasRealisticResult = false;
   bool _isPickingImage = false;
   String? _basePhotoPath;
-  String? _fittingFeedback;
   PoseAlignmentResult? _poseResult;
   final GeminiService _geminiService = GeminiService();
   final PoseDetectionService _poseService = PoseDetectionService();
@@ -38,8 +41,12 @@ class _TryOnScreenState extends State<TryOnScreen> {
   String? _standardizedModelPath;
   String _vtoLoadingStep = '';
   final Map<String, String> _cleanedGarmentsCache = {}; // item.id -> file path
+  final Set<String> _processingItems = {}; // To prevent concurrent processing of the same item
   bool _isCleaningGarments = false;
   final ImageStorageManager _imageStorageManager = ImageStorageManager();
+  
+  // Track manual offsets for clothing items in Quick Try mode
+  final Map<String, Offset> _clothingOffsets = {};
   // ------------------------------------------
 
   @override
@@ -48,7 +55,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
     super.dispose();
   }
 
-  String? _realisticImagePath; // Added variable to hold file path
+  String? _realisticImagePath; // Path to AI-generated image? _poseResult;
 
   @override
   void didChangeDependencies() {
@@ -95,9 +102,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
           // Save outfit button
           IconButton(
             icon: const Icon(Icons.bookmark_border),
-            onPressed: () {
-              // TODO: Implement save outfit functionality in Task 13.4
-            },
+            onPressed: () => _saveToFavorites(),
             tooltip: 'Save Outfit',
           ),
         ],
@@ -161,8 +166,8 @@ class _TryOnScreenState extends State<TryOnScreen> {
 
   /// Builds the mode toggle buttons (Quick Try / Realistic Fitting)
   Widget _buildModeToggle(BuildContext context, AppState appState) {
-    return Container(
-      padding: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           Expanded(
@@ -172,7 +177,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
               onTap: () => appState.setTryOnMode(TryOnMode.quick),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: _ModeToggleButton(
               label: 'Realistic Fitting',
@@ -273,13 +278,11 @@ class _TryOnScreenState extends State<TryOnScreen> {
     
     return LayoutBuilder(
       builder: (context, constraints) {
-        // If we are inside a SingleChildScrollView, maxHeight might be infinity.
-        // We need a finite height for the Stack to work correctly with Positioned.
         double height = constraints.hasBoundedHeight 
             ? constraints.maxHeight 
             : MediaQuery.of(context).size.width * 1.5; // Fallback to 2:3 ratio
 
-        final stack = SizedBox(
+        return SizedBox(
           height: height,
           width: constraints.maxWidth,
           child: Stack(
@@ -291,42 +294,53 @@ class _TryOnScreenState extends State<TryOnScreen> {
               // Overlay clothing items in correct order
               ...sortedItems.map((item) => _buildClothingOverlay(item, BoxConstraints.tightFor(width: constraints.maxWidth, height: height))),
 
+              // Heart Icon (Top Right)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: _buildFavoriteHeartButton(),
+              ),
+
               // Optional background processing indicator (non-blocking)
               if (_isCleaningGarments)
                 Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  bottom: 12,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(GoldFitTheme.gold600),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Refining...',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white),
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          Text(
+                            'Refining...',
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
             ],
           ),
         );
-
-        return stack;
       },
     );
   }
@@ -374,40 +388,42 @@ class _TryOnScreenState extends State<TryOnScreen> {
     
     // Initial state: show placeholder with generate button
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _buildBasePhotoPlaceholder(context),
-          ),
-          const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ElevatedButton.icon(
-              onPressed: appState.selectedTryOnItems.isEmpty 
-                  ? null 
-                  : () => _generateRealisticFitting(),
-              icon: const Icon(Icons.auto_awesome, size: 20),
-              label: const Text('Generate Realistic Fitting'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-            ),
-          ),
-          if (appState.selectedTryOnItems.isEmpty)
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
             Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                'Select clothing items to generate',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: GoldFitTheme.textLight,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildBasePhotoPlaceholder(context),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ElevatedButton.icon(
+                onPressed: appState.selectedTryOnItems.isEmpty 
+                    ? null 
+                    : () => _generateRealisticFitting(),
+                icon: const Icon(Icons.auto_awesome, size: 20),
+                label: const Text('Generate Realistic Fitting'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
               ),
             ),
-          const SizedBox(height: 40),
-        ],
+            if (appState.selectedTryOnItems.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  'Select clothing items to generate',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: GoldFitTheme.textLight,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -418,7 +434,6 @@ class _TryOnScreenState extends State<TryOnScreen> {
     setState(() {
       _isProcessingRealistic = true;
       _hasRealisticResult = false;
-      _fittingFeedback = null;
       _realisticImagePath = null;
     });
 
@@ -439,25 +454,19 @@ class _TryOnScreenState extends State<TryOnScreen> {
           }
         }
         
-        // Concurrent API calls
-        final results = await Future.wait([
-          _geminiService.analyzeFit(absolutePath, selectedItems),
-          _geminiService.generateVirtualTryOnImage(absolutePath, garmentPaths)
-        ]);
+        // Call Gemini API if we have a base photo
+        final base64Image = await _geminiService.generateVirtualTryOnImage(absolutePath, garmentPaths);
         
         if (mounted) {
-          final feedback = results[0];
-          final base64Image = results[1];
           
           if (base64Image != null) {
             final tempPath = await _imageStorageManager.saveTempImageFromBytes(base64Decode(base64Image));
             setState(() {
-              _fittingFeedback = feedback;
               _realisticImagePath = tempPath;
             });
           } else {
             setState(() {
-              _fittingFeedback = feedback;
+              // _fittingFeedback = feedback; // Removed as per user request
             });
           }
         }
@@ -466,7 +475,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
         print('Error analyzing fit with Gemini: $e');
         if (mounted) {
           setState(() {
-            _fittingFeedback = "Could not analyze the fit at this time.";
+            // Fitting feedback removed as per user request
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('AI Error: $e'), backgroundColor: Colors.red),
@@ -478,7 +487,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) {
         setState(() {
-          _fittingFeedback = "Upload a base photo to get personalized fit analysis from AI!";
+          // No photo provided
         });
       }
     }
@@ -543,130 +552,206 @@ class _TryOnScreenState extends State<TryOnScreen> {
             ),
           ),
 
-        // Result overlay overlay and controls
-        Positioned.fill(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Result overlay and controls
+        if (_realisticImagePath != null) ...[
+          // Top badge
+          Positioned(
+            top: 12,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: _buildTryOnCompleteBadge(),
+            ),
+          ),
+
+          // Heart Icon (Top Right)
+          Positioned(
+            top: 12,
+            right: 12,
+            child: _buildFavoriteHeartButton(),
+          ),
+        ],
+
+        // Bottom controls & feedback
+        Positioned(
+          bottom: 12,
+          left: 0,
+          right: 0,
+          child: _buildRealisticControlPanel(),
+        ),
+      ],
+    );
+  }
+
+  /// Builds the small badge indicating VTO is complete
+  Widget _buildTryOnCompleteBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.check_circle,
+            size: 14,
+            color: GoldFitTheme.gold600,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Try-On Complete',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: GoldFitTheme.textDark,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds the heart icon button for saving to favorites
+  Widget _buildFavoriteHeartButton() {
+    return GestureDetector(
+      onTap: _saveToFavorites,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.favorite_border, // Make it outlined to show it's clickable and not necessarily saved yet
+          color: Colors.red,
+          size: 24,
+        ),
+      ),
+    );
+  }
+
+  /// Builds the bottom panel with controls for realistic mode
+  Widget _buildRealisticControlPanel() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Action buttons
+        Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              // Top badge
-              Padding(
-                padding: const EdgeInsets.only(top: 24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.check_circle,
-                            size: 16,
-                            color: GoldFitTheme.gold600,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Virtual Try-On Complete',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: GoldFitTheme.textDark,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ]
+              ElevatedButton.icon(
+                onPressed: () => _generateRealisticFitting(),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Regenerate'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: GoldFitTheme.textDark,
                 ),
               ),
-              
-              // Bottom controls & feedback
-              Flexible(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_fittingFeedback != null)
-                      Container(
-                        constraints: BoxConstraints(
-                          maxHeight: MediaQuery.of(context).size.height * 0.3, // Max 30% height
-                        ),
-                        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.95),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: SingleChildScrollView(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(Icons.auto_awesome, color: GoldFitTheme.gold600, size: 20),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  _fittingFeedback!,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: GoldFitTheme.textDark,
-                                    height: 1.4,
-                                  ),
-                                  textAlign: TextAlign.left,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    
-                    // Action buttons
-                    Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () => _generateRealisticFitting(),
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Regenerate'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: GoldFitTheme.textDark,
-                            ),
-                          ),
-                          if (_realisticImagePath != null) ...[
-                            const SizedBox(width: 12),
-                            ElevatedButton.icon(
-                              onPressed: () => _showPoseSelectionDialog(),
-                              icon: const Icon(Icons.directions_run),
-                              label: const Text('Change Pose'),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+              if (_realisticImagePath != null)
+                ElevatedButton.icon(
+                  onPressed: () => _showPoseSelectionDialog(),
+                  icon: const Icon(Icons.directions_run),
+                  label: const Text('Change Pose'),
                 ),
-              ),
             ],
           ),
         ),
       ],
     );
+  }
+
+  Future<void> _saveToFavorites() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final selectedItems = appState.selectedTryOnItems;
+
+    if (selectedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select clothing items first')),
+      );
+      return;
+    }
+
+    final nameController = TextEditingController(
+      text: 'My Outfit ${DateFormat('MMM d').format(DateTime.now())}',
+    );
+
+    final String? outfitName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save to Favorites'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Outfit Name',
+            hintText: 'e.g., Summer Casual',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, nameController.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (outfitName == null || outfitName.isEmpty) return;
+
+    try {
+      final outfit = Outfit(
+        id: const Uuid().v4(),
+        name: outfitName,
+        itemIds: selectedItems.map((i) => i.id).toList(),
+        createdDate: DateTime.now(),
+        isFavorite: true,
+        modelImagePath: _basePhotoPath,
+        resultImagePath: appState.tryOnMode == TryOnMode.realistic ? _realisticImagePath : null,
+        vibe: 'Custom', // Default vibe
+      );
+
+      final favoritesViewModel = Provider.of<FavoritesViewModel>(context, listen: false);
+      await favoritesViewModel.saveOutfit(outfit);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Saved to Favorite Outfits!'),
+            backgroundColor: GoldFitTheme.gold600,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _showPoseSelectionDialog() {
@@ -729,18 +814,17 @@ class _TryOnScreenState extends State<TryOnScreen> {
           final tempPath = await _imageStorageManager.saveTempImageFromBytes(base64Decode(newImageBase64));
           setState(() {
             _realisticImagePath = tempPath;
-            _fittingFeedback = "Pose updated: $poseInstruction";
           });
         } else {
           setState(() {
-             _fittingFeedback = "Could not generate pose variation at this time.";
+             // Pose variation failed
           });
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _fittingFeedback = "Error changing pose: $e";
+          // Error changing pose
         });
       }
     } finally {
@@ -754,20 +838,51 @@ class _TryOnScreenState extends State<TryOnScreen> {
   }
 
   /// Sorts clothing items by their layering order
-  /// Triggers background removal for new garments
+  /// Triggers background removal for new garments - uses ID-based persistent storage
   void _cleanGarmentsIfNeeded(List<ClothingItem> items) async {
-    bool hasUncleanedGarment = false;
+    List<ClothingItem> itemsToClean = [];
+
+    // Check all items: prioritize by ID-based file on disk
     for (final item in items) {
-      if (!_cleanedGarmentsCache.containsKey(item.id)) {
-        hasUncleanedGarment = true;
-        break;
+      // 1. Already in memory cache
+      if (_cleanedGarmentsCache.containsKey(item.id)) continue;
+      // 2. Currently processing
+      if (_processingItems.contains(item.id)) continue;
+
+      // 3. Check persistent file by item ID (cleaned_garments/{id}.png)
+      final absoluteIdPath = await _imageStorageManager.getCleanedGarmentPath(item.id);
+      if (await File(absoluteIdPath).exists()) {
+        _cleanedGarmentsCache[item.id] = absoluteIdPath;
+        continue;
       }
+
+      // 4. Check if DB has a relative path saved (older format)
+      if (item.cleanedImageUrl != null && item.cleanedImageUrl!.isNotEmpty) {
+        try {
+          final dbPath = await _imageStorageManager.getImagePath(item.cleanedImageUrl!);
+          if (await File(dbPath).exists()) {
+            _cleanedGarmentsCache[item.id] = dbPath;
+            continue;
+          }
+        } catch (_) {}
+      }
+
+      // 5. Needs API call
+      itemsToClean.add(item);
     }
 
-    if (!hasUncleanedGarment || _isCleaningGarments) return;
+    if (itemsToClean.isEmpty) {
+      // All items already cached – refresh UI if needed
+      if (mounted) setState(() {});
+      return;
+    }
 
     // Use microtask to avoid calling setState during build phase
     Future.microtask(() async {
+      for (var item in itemsToClean) {
+        _processingItems.add(item.id);
+      }
+
       if (mounted) {
         setState(() {
           _isCleaningGarments = true;
@@ -776,24 +891,42 @@ class _TryOnScreenState extends State<TryOnScreen> {
       }
 
       try {
-        final storage = ImageStorageManager();
-        for (final item in items) {
-          if (!_cleanedGarmentsCache.containsKey(item.id) && item.imageUrl.isNotEmpty) {
-             final absolutePath = await storage.getImagePath(item.imageUrl);
-             final cleanedBase64 = await _geminiService.removeBackground(absolutePath);
-             if (cleanedBase64 != null) {
-                // Save to temp file to avoid OOM
-                final tempFile = await storage.saveTempImageFromBytes(base64Decode(cleanedBase64));
-                _cleanedGarmentsCache[item.id] = tempFile;
-             }
+        final wardrobeViewModel = Provider.of<WardrobeViewModel>(context, listen: false);
+        
+        for (final item in itemsToClean) {
+          if (item.imageUrl.isEmpty) continue;
+          try {
+            final absolutePath = await _imageStorageManager.getImagePath(item.imageUrl);
+            if (!await File(absolutePath).exists()) continue;
+
+            // Call Remove.bg API
+            final cleanedBase64 = await _geminiService.removeBackground(absolutePath);
+            if (cleanedBase64 != null) {
+              final bytes = base64Decode(cleanedBase64);
+              // Save persistently by item ID → always findable by ID, never lost on restart
+              final persistentAbsolutePath = await _imageStorageManager.saveCleanedGarment(item.id, bytes);
+              _cleanedGarmentsCache[item.id] = persistentAbsolutePath;
+              
+              // Also store relative path in DB for cross-device compatibility
+              final relativeCleanedPath = 'cleaned_garments/${item.id}.png';
+              final updatedItem = item.copyWith(cleanedImageUrl: relativeCleanedPath);
+              await wardrobeViewModel.updateItem(updatedItem);
+            }
+          } catch (e) {
+            // ignore: avoid_print
+            print('Error cleaning garment ${item.id}: $e');
           }
         }
       } catch (e) {
-        print('Error cleaning garments: $e');
+        // ignore: avoid_print
+        print('Error in _cleanGarmentsIfNeeded: $e');
       } finally {
+        for (var item in itemsToClean) {
+          _processingItems.remove(item.id);
+        }
         if (mounted) {
           setState(() {
-            _isCleaningGarments = false;
+            _isCleaningGarments = _processingItems.isNotEmpty;
             _vtoLoadingStep = '';
           });
         }
@@ -869,18 +1002,29 @@ class _TryOnScreenState extends State<TryOnScreen> {
       left = position.left != null ? position.left! * width : null;
       right = position.right != null ? position.right! * width : null;
       bottom = position.bottom != null ? position.bottom! * height : null;
-      itemWidth = null;
-      itemHeight = null;
+      itemWidth = width * (position.widthScale ?? 0.6);
+      itemHeight = height * (position.heightScale ?? 0.5);
+      
+      // Keep it centered based on new scaled width
+      if (left != null && right == null) {
+        left = (width - itemWidth) / 2;
+      }
     }
 
     return Positioned(
-      top: top,
-      left: left,
-      right: right,
-      bottom: bottom,
+      top: top != null ? top + (_clothingOffsets[item.id]?.dy ?? 0) : null,
+      left: left != null ? left + (_clothingOffsets[item.id]?.dx ?? 0) : null,
+      right: right != null ? right - (_clothingOffsets[item.id]?.dx ?? 0) : null,
+      bottom: bottom != null ? bottom - (_clothingOffsets[item.id]?.dy ?? 0) : null,
       width: itemWidth,
       height: itemHeight,
-      child: Container(
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            _clothingOffsets[item.id] = (_clothingOffsets[item.id] ?? Offset.zero) + details.delta;
+          });
+        },
+        child: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
@@ -895,8 +1039,9 @@ class _TryOnScreenState extends State<TryOnScreen> {
           child: _buildClothingImage(item, width: itemWidth, height: itemHeight),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// Returns positioning for a clothing type
   /// Bottoms: lower portion, Tops: middle, Outerwear: top
@@ -905,51 +1050,78 @@ class _TryOnScreenState extends State<TryOnScreen> {
       case ClothingType.shoes:
         return _OverlayPosition(
           top: null,
-          left: 0.25,
-          right: 0.25,
+          left: null,
+          right: null,
           bottom: 0.05,
+          widthScale: 0.4,
+          heightScale: 0.2,
         );
       case ClothingType.bottoms:
         return _OverlayPosition(
-          top: 0.45,
-          left: 0.2,
-          right: 0.2,
-          bottom: 0.15,
+          top: 0.5,
+          left: null,
+          right: null,
+          bottom: null,
+          widthScale: 0.65,
+          heightScale: 0.45,
         );
       case ClothingType.tops:
         return _OverlayPosition(
-          top: 0.25,
-          left: 0.15,
-          right: 0.15,
-          bottom: 0.45,
+          top: 0.15,
+          left: null,
+          right: null,
+          bottom: null,
+          widthScale: 0.75,
+          heightScale: 0.45,
         );
       case ClothingType.outerwear:
         return _OverlayPosition(
-          top: 0.2,
-          left: 0.1,
-          right: 0.1,
-          bottom: 0.4,
+          top: 0.15,
+          left: null,
+          right: null,
+          bottom: null,
+          widthScale: 0.8,
+          heightScale: 0.5,
         );
       case ClothingType.accessories:
         return _OverlayPosition(
-          top: 0.15,
-          left: 0.3,
-          right: 0.3,
+          top: 0.1,
+          left: null,
+          right: null,
           bottom: null,
+          widthScale: 0.3,
+          heightScale: 0.2,
         );
     }
   }
 
   /// Builds the image widget for a clothing item
   Widget _buildClothingImage(ClothingItem item, {double? width, double? height}) {
-      if (_cleanedGarmentsCache.containsKey(item.id)) {
-        return Image.file(
-          File(_cleanedGarmentsCache[item.id]!),
-          fit: BoxFit.contain,
-          width: width,
-          height: height,
-        );
-      } else if (item.imageUrl.contains('/')) {
+    if (_cleanedGarmentsCache.containsKey(item.id)) {
+      return Image.file(
+        File(_cleanedGarmentsCache[item.id]!),
+        fit: BoxFit.contain,
+        width: width,
+        height: height,
+      );
+    } else if (item.cleanedImageUrl != null && item.cleanedImageUrl!.isNotEmpty) {
+      // FutureBuilder to safely resolve the absolute path if needed
+      return FutureBuilder<String>(
+        future: ImageStorageManager().getImagePath(item.cleanedImageUrl!),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            _cleanedGarmentsCache[item.id] = snapshot.data!;
+            return Image.file(
+              File(snapshot.data!),
+              fit: BoxFit.contain,
+              width: width,
+              height: height,
+            );
+          }
+          return _buildLoadingPlaceholder(width, height);
+        },
+      );
+    } else if (item.imageUrl.contains('/')) {
       return LocalImageWidget(
         imagePath: item.imageUrl,
         fit: BoxFit.contain,
@@ -957,27 +1129,45 @@ class _TryOnScreenState extends State<TryOnScreen> {
         height: height,
       );
     } else {
-      // Use colored container with icon as placeholder
-      return Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: _getColorFromName(item.color).withOpacity(0.7),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.5),
-            width: 2,
-          ),
-        ),
-        child: Center(
-          child: Icon(
-            _getIconForType(item.type),
-            size: 48,
-            color: Colors.white,
-          ),
-        ),
-      );
+      return _buildColorPlaceholder(item, width, height);
     }
+  }
+
+  Widget _buildLoadingPlaceholder(double? width, double? height) {
+    return Container(
+      width: width,
+      height: height,
+      color: Colors.transparent,
+      child: const Center(
+        child: SizedBox(
+          width: 24, 
+          height: 24, 
+          child: CircularProgressIndicator(strokeWidth: 2)
+        )
+      ),
+    );
+  }
+
+  Widget _buildColorPlaceholder(ClothingItem item, double? width, double? height) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: _getColorFromName(item.color).withOpacity(0.7),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.5),
+          width: 2,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          _getIconForType(item.type),
+          size: 48,
+          color: Colors.white,
+        ),
+      ),
+    );
   }
 
   /// Converts color name to Color object
@@ -1288,12 +1478,16 @@ class _OverlayPosition {
   final double? left;
   final double? right;
   final double? bottom;
+  final double? widthScale;
+  final double? heightScale;
 
   _OverlayPosition({
     this.top,
     this.left,
     this.right,
     this.bottom,
+    this.widthScale,
+    this.heightScale,
   });
 }
 
@@ -1442,10 +1636,12 @@ class _ClothingSelectorBottomSheetState extends State<_ClothingSelectorBottomShe
 
   /// Builds the grid of clothing items
   Widget _buildClothingGrid(AppState appState) {
+    final wardrobeViewModel = Provider.of<WardrobeViewModel>(context, listen: false);
+    
     // Get items based on selected category
     final items = _selectedCategory != null
-        ? appState.dataProvider.getItemsByCategory(_selectedCategory!)
-        : appState.allItems;
+        ? wardrobeViewModel.items.where((i) => i.type == _selectedCategory).toList()
+        : wardrobeViewModel.items;
 
     if (items.isEmpty) {
       return Center(

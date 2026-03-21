@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/models/outfit.dart';
@@ -28,8 +29,10 @@ class RecommendationsViewModel extends ChangeNotifier {
   RecommendationsViewModel(this._outfitRepository, this._clothingRepository);
 
   Future<void> loadRecommendations({String? vibe, String? eventDescription}) async {
-    _setLoading(true);
-    _setError(null);
+    Future.microtask(() {
+      _setLoading(true);
+      _setError(null);
+    });
 
     try {
       final weatherData = await _weatherService.getCurrentWeather();
@@ -53,16 +56,34 @@ class RecommendationsViewModel extends ChangeNotifier {
       if (vibe != null) contextStr += ' for a $vibe vibe';
       if (eventDescription != null) contextStr += ' for event: $eventDescription';
 
-      final bestId = await _geminiService.recommendBestOutfit(allOutfits, itemsMap, contextStr);
-      
-      List<Outfit> sortedOutfits = allOutfits.toList();
-      if (bestId != null) {
-        final index = sortedOutfits.indexWhere((o) => o.id == bestId);
-        if (index != -1) {
-          final best = sortedOutfits.removeAt(index);
-          sortedOutfits.insert(0, best);
+      final jsonResponse = await _geminiService.getStructuredRecommendationCriteria(contextStr);
+      List<String> targetSeasons = [];
+      if (jsonResponse != null) {
+        try {
+          final decoded = jsonDecode(jsonResponse);
+          if (decoded['seasons'] != null) {
+            targetSeasons = List<String>.from(decoded['seasons']);
+          }
+        } catch (e) {
+          // ignore: avoid_print
+          print('Error parsing seasons json: $e');
         }
       }
+
+      if (targetSeasons.isEmpty) {
+        targetSeasons = ['summer']; // Fallback
+      }
+
+      List<Outfit> sortedOutfits = allOutfits.toList();
+      sortedOutfits.sort((a, b) {
+        final aItems = itemsMap[a.id] ?? [];
+        final bItems = itemsMap[b.id] ?? [];
+        
+        final aMatchCount = aItems.where((i) => i.seasons.any((s) => targetSeasons.contains(s.name.toLowerCase()))).length;
+        final bMatchCount = bItems.where((i) => i.seasons.any((s) => targetSeasons.contains(s.name.toLowerCase()))).length;
+        
+        return bMatchCount.compareTo(aMatchCount); // Descending
+      });
 
       _recommendations = sortedOutfits.take(5).toList();
       _recommendationItems = itemsMap;

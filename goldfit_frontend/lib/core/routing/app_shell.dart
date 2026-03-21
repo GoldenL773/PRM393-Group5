@@ -5,6 +5,7 @@ import 'package:goldfit_frontend/features/try_on/try_on_screen.dart';
 import 'package:goldfit_frontend/features/planner/planner_screen.dart';
 import 'package:goldfit_frontend/features/insights/insights_screen.dart';
 
+
 /// Root navigation structure with bottom navigation bar
 /// Manages navigation between 5 main screens: Home, Wardrobe, Try-On, Planner, Insights
 /// Uses IndexedStack to preserve screen state during navigation

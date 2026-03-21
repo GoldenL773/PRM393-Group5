@@ -13,5 +13,6 @@ class AppRoutes {
   static const String editItem = '/edit-item';
   static const String styling = '/styling';
   static const String recommendations = '/recommendations';
+  static const String favorites = '/favorites';
   static const String debugLogs = '/debug-logs';
 }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:goldfit_frontend/features/insights/insights_viewmodel.dart';
 import 'package:goldfit_frontend/shared/widgets/analytics_card.dart';
 import 'package:goldfit_frontend/shared/widgets/clothing_item_card.dart';
+import 'package:goldfit_frontend/shared/utils/routes.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 
 /// Insights screen displaying wardrobe analytics and usage statistics
@@ -104,6 +105,78 @@ class _InsightsScreenState extends State<InsightsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Favorite Outfits Entry
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, AppRoutes.favorites),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          GoldFitTheme.gold600,
+                          GoldFitTheme.gold600.withOpacity(0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: GoldFitTheme.gold600.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.favorite,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Favorite Outfits',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'View your saved try-on results',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+
                 // Summary cards for total items and total value
                 Row(
                   children: [

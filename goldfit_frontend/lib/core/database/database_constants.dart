@@ -6,7 +6,7 @@ library;
 class DatabaseConstants {
   // Database configuration
   static const String databaseName = 'goldfit.db';
-  static const int databaseVersion = 1;
+  static const int databaseVersion = 3;
 
   // Table names
   static const String tableClothingItems = 'clothing_items';
@@ -23,6 +23,7 @@ class DatabaseConstants {
   // clothing_items table columns
   static const String columnId = 'id';
   static const String columnImagePath = 'image_path';
+  static const String columnCleanedImagePath = 'cleaned_image_path';
   static const String columnType = 'type';
   static const String columnColor = 'color';
   static const String columnSeasons = 'seasons';
@@ -37,6 +38,9 @@ class DatabaseConstants {
   static const String columnVibe = 'vibe';
   static const String columnThumbnailPath = 'thumbnail_path';
   static const String columnWeatherContext = 'weather_context';
+  static const String columnIsFavorite = 'is_favorite';
+  static const String columnModelImagePath = 'model_image_path';
+  static const String columnResultImagePath = 'result_image_path';
 
   // outfit_items table columns
   static const String columnOutfitId = 'outfit_id';
@@ -55,7 +59,7 @@ class DatabaseConstants {
   // try_on_sessions table columns
   static const String columnBasePhotoId = 'base_photo_id';
   static const String columnMode = 'mode';
-  static const String columnResultImagePath = 'result_image_path';
+  static const String columnSessionResultImagePath = 'session_result_image_path';
 
   // user_preferences table columns
   static const String columnKey = 'key';

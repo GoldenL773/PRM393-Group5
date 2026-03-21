@@ -11,6 +11,9 @@ class Outfit {
   final DateTime? assignedDate;
   final String? vibe; // e.g., Casual, Work, Date Night
   final DateTime createdDate;
+  final bool isFavorite;
+  final String? modelImagePath;
+  final String? resultImagePath;
 
   Outfit({
     required this.id,
@@ -19,6 +22,9 @@ class Outfit {
     this.assignedDate,
     this.vibe,
     required this.createdDate,
+    this.isFavorite = false,
+    this.modelImagePath,
+    this.resultImagePath,
   });
 
   /// Resolves the item IDs to actual ClothingItem objects.
@@ -42,6 +48,9 @@ class Outfit {
     List<String>? itemIds,
     DateTime? assignedDate,
     String? vibe,
+    bool? isFavorite,
+    String? modelImagePath,
+    String? resultImagePath,
   }) {
     return Outfit(
       id: id,
@@ -50,6 +59,9 @@ class Outfit {
       assignedDate: assignedDate ?? this.assignedDate,
       vibe: vibe ?? this.vibe,
       createdDate: createdDate,
+      isFavorite: isFavorite ?? this.isFavorite,
+      modelImagePath: modelImagePath ?? this.modelImagePath,
+      resultImagePath: resultImagePath ?? this.resultImagePath,
     );
   }
 
@@ -62,6 +74,9 @@ class Outfit {
       'assignedDate': assignedDate?.toIso8601String(),
       'vibe': vibe,
       'createdDate': createdDate.toIso8601String(),
+      'isFavorite': isFavorite ? 1 : 0,
+      'modelImagePath': modelImagePath,
+      'resultImagePath': resultImagePath,
     };
   }
 
@@ -76,6 +91,9 @@ class Outfit {
           : null,
       vibe: json['vibe'] as String?,
       createdDate: DateTime.parse(json['createdDate'] as String),
+      isFavorite: (json['isFavorite'] as int?) == 1,
+      modelImagePath: json['modelImagePath'] as String?,
+      resultImagePath: json['resultImagePath'] as String?,
     );
   }
 }

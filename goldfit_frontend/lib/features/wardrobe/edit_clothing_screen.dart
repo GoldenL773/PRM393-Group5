@@ -16,7 +16,6 @@ class _EditClothingScreenState extends State<EditClothingScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _priceController;
   late ClothingType _selectedType;
-  late String _selectedColor;
   late List<Season> _selectedSeasons;
   bool _isInitialized = false;
 
@@ -44,7 +43,7 @@ class _EditClothingScreenState extends State<EditClothingScreen> {
     if (!_isInitialized) {
       _priceController = TextEditingController(text: item.price?.toString() ?? '0.0');
       _selectedType = item.type;
-      _selectedColor = item.color;
+
       _selectedSeasons = List.from(item.seasons);
       _isInitialized = true;
     }

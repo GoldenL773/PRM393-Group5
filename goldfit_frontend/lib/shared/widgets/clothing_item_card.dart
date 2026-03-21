@@ -34,7 +34,7 @@ class ClothingItemCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -62,7 +62,7 @@ class ClothingItemCard extends StatelessWidget {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            Colors.black.withValues(alpha: 0.0),
+                            Colors.black.withOpacity(0.0),
                           ],
                         ),
                       ),
@@ -102,7 +102,7 @@ class ClothingItemCard extends StatelessWidget {
         child: Icon(
           _getIconForType(item.type),
           size: 48,
-          color: Colors.white.withValues(alpha: 0.7),
+          color: Colors.white.withOpacity(0.7),
         ),
       ),
     );

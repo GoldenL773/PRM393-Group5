@@ -93,7 +93,7 @@ class ClothingRepositoryImpl implements ClothingRepository {
       final results = await db.query(
         DatabaseConstants.tableClothingItems,
         where: '${DatabaseConstants.columnType} = ?',
-        whereArgs: [type.name],
+        whereArgs: [type.toString().split('.').last],
         orderBy: '${DatabaseConstants.columnCreatedAt} DESC',
       );
 
@@ -128,7 +128,7 @@ class ClothingRepositoryImpl implements ClothingRepository {
       if (filters.seasons.isNotEmpty) {
         for (final season in filters.seasons) {
           whereConditions.add('${DatabaseConstants.columnSeasons} LIKE ?');
-          whereArgs.add('%"${season.name}"%');
+          whereArgs.add('%"${season.toString().split('.').last}"%');
         }
       }
 
@@ -258,50 +258,43 @@ class ClothingRepositoryImpl implements ClothingRepository {
 
   @override
   Stream<List<ClothingItem>> watchAll() async* {
-    // For real-time updates, we'd use a StreamController
-    // and trigger updates when data changes
-    // For now, just yield the current state
     yield await getAll();
   }
 
   /// Converts a ClothingItem domain model to a database map.
-  ///
-  /// This method handles:
-  /// - Converting enums to string names
-  /// - Serializing lists to JSON
-  /// - Converting DateTime to milliseconds since epoch
-  /// - Setting updated_at timestamp to current time
   Map<String, dynamic> _toMap(ClothingItem item) {
     return {
       DatabaseConstants.columnId: item.id,
       DatabaseConstants.columnImagePath: item.imageUrl,
-      DatabaseConstants.columnType: item.type.name,
+      DatabaseConstants.columnCleanedImagePath: item.cleanedImageUrl,
+      DatabaseConstants.columnType: item.type.toString().split('.').last,
       DatabaseConstants.columnColor: item.color,
       DatabaseConstants.columnSeasons:
-          jsonEncode(item.seasons.map((s) => s.name).toList()),
+          jsonEncode(item.seasons.map((s) => s.toString().split('.').last).toList()),
       DatabaseConstants.columnPrice: item.price,
       DatabaseConstants.columnUsageCount: item.usageCount,
-      DatabaseConstants.columnAiTags: null, // Future AI tags
+      DatabaseConstants.columnAiTags: null,
       DatabaseConstants.columnCreatedAt: item.addedDate.millisecondsSinceEpoch,
       DatabaseConstants.columnUpdatedAt: DateTime.now().millisecondsSinceEpoch,
     };
   }
 
   /// Converts a database map to a ClothingItem domain model.
-  ///
-  /// This method handles:
-  /// - Converting string names back to enums
-  /// - Deserializing JSON to lists
-  /// - Converting milliseconds since epoch to DateTime
   ClothingItem _fromMap(Map<String, dynamic> map) {
     return ClothingItem(
       id: map[DatabaseConstants.columnId] as String,
       imageUrl: map[DatabaseConstants.columnImagePath] as String,
-      type: ClothingType.values
-          .firstWhere((e) => e.name == map[DatabaseConstants.columnType]),
+      cleanedImageUrl: map[DatabaseConstants.columnCleanedImagePath] as String?,
+      type: ClothingType.values.firstWhere(
+        (e) => e.toString().split('.').last == map[DatabaseConstants.columnType],
+        orElse: () => ClothingType.tops,
+      ),
       color: map[DatabaseConstants.columnColor] as String,
-      seasons: (jsonDecode(map[DatabaseConstants.columnSeasons]) as List<dynamic>)
-          .map((s) => Season.values.firstWhere((e) => e.name == s))
+      seasons: (jsonDecode(map[DatabaseConstants.columnSeasons] as String) as List<dynamic>)
+          .map((s) => Season.values.firstWhere(
+                (e) => e.toString().split('.').last == s,
+                orElse: () => Season.summer,
+              ))
           .toList(),
       price: map[DatabaseConstants.columnPrice] as double?,
       usageCount: map[DatabaseConstants.columnUsageCount] as int,

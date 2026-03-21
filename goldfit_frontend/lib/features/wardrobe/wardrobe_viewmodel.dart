@@ -2,15 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/models/filter_state.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository.dart';
+import 'package:goldfit_frontend/shared/services/gemini_service.dart';
 
 /// ViewModel for the Wardrobe screen that manages UI state and business logic.
-/// 
-/// Extends ChangeNotifier to provide reactive state updates to the UI.
-/// Handles loading, filtering, and CRUD operations for clothing items.
-/// 
-/// **Validates Requirements:** 14.1, 14.2, 14.3, 14.4, 14.5
 class WardrobeViewModel extends ChangeNotifier {
   final ClothingRepository _clothingRepository;
+  final GeminiService _geminiService = GeminiService();
 
   // State properties
   List<ClothingItem> _items = [];
@@ -27,9 +24,6 @@ class WardrobeViewModel extends ChangeNotifier {
   WardrobeViewModel(this._clothingRepository);
 
   /// Loads all clothing items from the repository.
-  /// 
-  /// Sets loading state, clears errors, and fetches items.
-  /// Updates error state if the operation fails.
   Future<void> loadItems() async {
     _setLoading(true);
     _setError(null);
@@ -45,9 +39,6 @@ class WardrobeViewModel extends ChangeNotifier {
   }
 
   /// Applies the specified filters to the wardrobe items.
-  /// 
-  /// Updates the filter state and fetches filtered items from the repository.
-  /// Updates error state if the operation fails.
   Future<void> applyFilters(FilterState filters) async {
     _filters = filters;
     _setLoading(true);
@@ -65,22 +56,44 @@ class WardrobeViewModel extends ChangeNotifier {
 
   /// Adds a new clothing item to the wardrobe.
   /// 
-  /// Creates the item in the repository and adds it to the local state.
-  /// Updates error state if the operation fails.
+  /// Automatically triggers background removal in the background.
   Future<void> addItem(ClothingItem item) async {
     try {
       final created = await _clothingRepository.create(item);
       _items.insert(0, created);
       notifyListeners();
+
+      // Proactively trigger background removal for cleaner Quick Try
+      _cleanItemBackground(created);
     } catch (e) {
       _setError('Failed to add item: $e');
     }
   }
 
+  /// Triggers background removal for an item and updates it in the database.
+  Future<void> _cleanItemBackground(ClothingItem item) async {
+    if (item.cleanedImageUrl != null) return;
+
+    try {
+      final cleanedPath = await _geminiService.removeBackground(item.imageUrl);
+      if (cleanedPath != null) {
+        final updatedItem = item.copyWith(cleanedImageUrl: cleanedPath);
+        await _clothingRepository.update(updatedItem);
+        
+        // Update in local state if still present
+        final index = _items.indexWhere((i) => i.id == item.id);
+        if (index != -1) {
+          _items[index] = updatedItem;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('Proactive background removal failed: $e');
+    }
+  }
+
   /// Updates an existing clothing item in the wardrobe.
-  /// 
-  /// Updates the item in the repository and updates the local state.
-  /// Updates error state if the operation fails.
   Future<void> updateItem(ClothingItem item) async {
     try {
       final updated = await _clothingRepository.update(item);
@@ -95,9 +108,6 @@ class WardrobeViewModel extends ChangeNotifier {
   }
 
   /// Deletes a clothing item from the wardrobe.
-  /// 
-  /// Removes the item from the repository and updates the local state.
-  /// Updates error state if the operation fails.
   Future<void> deleteItem(String id) async {
     try {
       await _clothingRepository.delete(id);

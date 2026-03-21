@@ -2,6 +2,7 @@
 class ClothingItem {
   final String id;
   final String imageUrl;
+  final String? cleanedImageUrl; // Persistent path to background-removed image
   final ClothingType type;
   final String color;
   final List<Season> seasons;
@@ -12,6 +13,7 @@ class ClothingItem {
   ClothingItem({
     required this.id,
     required this.imageUrl,
+    this.cleanedImageUrl,
     required this.type,
     required this.color,
     required this.seasons,
@@ -23,6 +25,7 @@ class ClothingItem {
   /// Creates a copy of this ClothingItem with the given fields replaced with new values.
   ClothingItem copyWith({
     String? imageUrl,
+    String? cleanedImageUrl,
     ClothingType? type,
     String? color,
     List<Season>? seasons,
@@ -32,6 +35,7 @@ class ClothingItem {
     return ClothingItem(
       id: id,
       imageUrl: imageUrl ?? this.imageUrl,
+      cleanedImageUrl: cleanedImageUrl ?? this.cleanedImageUrl,
       type: type ?? this.type,
       color: color ?? this.color,
       seasons: seasons ?? this.seasons,
@@ -46,9 +50,10 @@ class ClothingItem {
     return {
       'id': id,
       'imageUrl': imageUrl,
-      'type': type.name,
+      'cleanedImageUrl': cleanedImageUrl,
+      'type': type.toString().split('.').last,
       'color': color,
-      'seasons': seasons.map((s) => s.name).toList(),
+      'seasons': seasons.map((s) => s.toString().split('.').last).toList(),
       'price': price,
       'usageCount': usageCount,
       'addedDate': addedDate.toIso8601String(),
@@ -60,13 +65,19 @@ class ClothingItem {
     return ClothingItem(
       id: json['id'] as String,
       imageUrl: json['imageUrl'] as String,
+      cleanedImageUrl: json['cleanedImageUrl'] as String?,
       type: ClothingType.values.firstWhere(
-        (e) => e.name == json['type'],
+        (e) => e.toString().split('.').last == json['type'],
+        orElse: () => ClothingType.tops,
       ),
       color: json['color'] as String,
-      seasons: (json['seasons'] as List<dynamic>)
-          .map((s) => Season.values.firstWhere((e) => e.name == s))
-          .toList(),
+      seasons: (json['seasons'] as List<dynamic>?)
+              ?.map((s) => Season.values.firstWhere(
+                    (e) => e.toString().split('.').last == s,
+                    orElse: () => Season.summer,
+                  ))
+              .toList() ??
+          [],
       price: json['price'] as double?,
       usageCount: json['usageCount'] as int,
       addedDate: DateTime.parse(json['addedDate'] as String),

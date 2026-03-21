@@ -49,6 +49,7 @@ class WeatherService {
           }
         }
       } catch (e) {
+        // ignore: avoid_print
         print('Error in reverse geocoding: $e');
       }
 

@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart'; // added for kDebugMode
 import 'package:goldfit_frontend/features/home/home_viewmodel.dart';
+import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/providers/app_state.dart';
 import 'package:goldfit_frontend/shared/widgets/outfit_card.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
@@ -10,6 +12,7 @@ import 'package:goldfit_frontend/core/database/database_seeder.dart';
 import 'package:goldfit_frontend/core/database/database_manager.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository.dart';
 import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
+import 'package:goldfit_frontend/core/storage/image_storage_manager.dart';
 
 /// Home screen displaying weather information and outfit recommendations
 /// Shows weather widget, "Get Styled" button, and recommended outfits
@@ -131,110 +134,150 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Returns the appropriate weather background image asset path
+  String _getWeatherImageAsset(String condition, bool isDay) {
+    final cond = condition.toLowerCase();
+    if (cond.contains('rain') || cond.contains('storm') || cond.contains('drizzle')) {
+      return 'assets/images/weather/rainy.png';
+    } else if (cond.contains('cloud') || cond.contains('overcast') || cond.contains('fog') || cond.contains('mist')) {
+      return 'assets/images/weather/cloudy.png';
+    } else {
+      // Sunny, Clear, etc.
+      return 'assets/images/weather/sunny.png';
+    }
+  }
+
+  /// Returns overlay color based on time of day
+  Color _getWeatherOverlay(String condition, bool isDay) {
+    final cond = condition.toLowerCase();
+    if (cond.contains('rain') || cond.contains('storm')) {
+      return Colors.blueGrey.shade900.withOpacity(0.55);
+    } else if (!isDay) {
+      return Colors.indigo.shade900.withOpacity(0.60);
+    }
+    return Colors.black.withOpacity(0.30);
+  }
+
   /// Builds the weather widget displaying temperature, condition, and location
   Widget _buildWeatherWidget(dynamic weather) {
-    final colors = _getWeatherColors(weather.condition);
+    if (weather == null) {
+      return Container(
+        height: 160,
+        decoration: BoxDecoration(
+          color: GoldFitTheme.surfaceLight,
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: const Center(child: CircularProgressIndicator(color: GoldFitTheme.primary)),
+      );
+    }
+
+    final cond = weather.condition.toString();
+    final isDay = weather.isDay ?? true;
+    final bgAsset = _getWeatherImageAsset(cond, isDay);
+    final overlay = _getWeatherOverlay(cond, isDay);
     
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      height: 155,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: colors,
-        ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: colors[0].withOpacity(0.2),
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 20,
             spreadRadius: 2,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                _getWeatherIcon(weather.condition),
-                size: 56,
-                color: GoldFitTheme.gold700,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Background image
+            Image.asset(
+              bgAsset,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: GoldFitTheme.gold600,
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${weather.temperature.round()}°C',
-                      style: const TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                        color: GoldFitTheme.textDark,
-                        letterSpacing: -1,
+            ),
+            // Semi-transparent overlay
+            Container(color: overlay),
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _getWeatherIcon(cond),
+                        size: 50,
+                        color: Colors.white,
+                        shadows: const [Shadow(color: Colors.black45, blurRadius: 6)],
                       ),
-                    ),
-                    Text(
-                      weather.condition,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.black54,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${weather.temperature.round()}°C',
+                              style: const TextStyle(
+                                fontSize: 38,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: -1,
+                                shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                              ),
+                            ),
+                            Text(
+                              cond,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                                shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, size: 16, color: Colors.white70),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          weather.location,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.bold,
+                            shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Icon(
-                Icons.location_on,
-                size: 18,
-                color: Colors.black54,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                weather.location,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: Colors.black54,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  List<Color> _getWeatherColors(String condition) {
-    switch (condition.toLowerCase()) {
-      case 'sunny':
-      case 'clear':
-        return [GoldFitTheme.primary.withOpacity(0.6), GoldFitTheme.yellow100.withOpacity(0.9)];
-      case 'cloudy':
-      case 'partly cloudy':
-        return [Colors.blueGrey.withOpacity(0.4), Colors.blue.withOpacity(0.2)];
-      case 'rainy':
-      case 'rain':
-      case 'stormy':
-      case 'thunderstorm':
-        return [Colors.indigo.withOpacity(0.4), Colors.blue.withOpacity(0.2)];
-      case 'snowy':
-      case 'snow':
-        return [Colors.white.withOpacity(0.6), Colors.blue[50]!.withOpacity(0.9)];
-      default:
-        return [GoldFitTheme.primary.withOpacity(0.6), GoldFitTheme.yellow100.withOpacity(0.9)];
-    }
-  }
 
   /// Builds the "Get Styled" button
   Widget _buildGetStyledButton(BuildContext context) {
@@ -247,12 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
           navigationManager.navigateToStyling(context);
         },
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 20), // Nút béo ra một chút
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20), // Bo góc mềm mại
-          ),
-          elevation: 8, // Nổi hẳn lên
-          shadowColor: GoldFitTheme.primary.withOpacity(0.5), // Cùng hiệu ứng gold
+          shadowColor: GoldFitTheme.primary.withOpacity(0.3),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -280,17 +318,19 @@ class _HomeScreenState extends State<HomeScreen> {
     List<dynamic> recommendations,
   ) {
     final navigationManager = Provider.of<NavigationManager>(context, listen: false);
+    final recommendedItems = viewModel.recommendedItems;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // AI Styling advice box
         if (viewModel.stylingAdvice != null) ...[
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: GoldFitTheme.yellow100,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: GoldFitTheme.yellow200),
+              color: GoldFitTheme.yellow100.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: GoldFitTheme.yellow200.withOpacity(0.1)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,6 +352,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 24),
         ],
+
+        // Debug AI log in debug mode
+        if (kDebugMode && viewModel.aiDebugLog != null) ...[
+          ExpansionTile(
+            leading: const Icon(Icons.bug_report, color: Colors.orange, size: 18),
+            title: const Text('AI Debug Log', style: TextStyle(fontSize: 13, color: Colors.orange)),
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  viewModel.aiDebugLog!,
+                  style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+        
         const Text(
           'Recommended for Today',
           style: TextStyle(
@@ -321,22 +385,35 @@ class _HomeScreenState extends State<HomeScreen> {
             letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         
-        if (recommendations.isEmpty)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(32.0),
-              child: Text(
-                'No recommendations available',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: GoldFitTheme.textLight,
-                ),
-              ),
+        // Individual clothing items grid (filtered by season+color)
+        if (recommendedItems.isNotEmpty) ...[
+          SizedBox(
+            height: 140,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: recommendedItems.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                return _buildRecommendedItemCard(context, recommendedItems[index], navigationManager);
+              },
             ),
-          )
-        else
+          ),
+          const SizedBox(height: 24),
+        ],
+        
+        // Outfit section title
+        if (recommendations.isNotEmpty) ...[
+          const Text(
+            'Complete Outfits',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: GoldFitTheme.textDark,
+            ),
+          ),
+          const SizedBox(height: 16),
           ...recommendations.map((outfit) {
             final items = viewModel.recommendationItems[outfit.id] ?? [];
             return Padding(
@@ -350,7 +427,100 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
           }),
+        ] else if (recommendedItems.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32.0),
+              child: Text(
+                'No recommendations available.\nTap "Get Styled" for AI-powered suggestions!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: GoldFitTheme.textLight,
+                ),
+              ),
+            ),
+          ),
       ],
+    );
+  }
+
+  /// Builds a small card for a single recommended clothing item
+  Widget _buildRecommendedItemCard(
+    BuildContext context,
+    ClothingItem item,
+    NavigationManager navigationManager,
+  ) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/try-on'),
+      child: Container(
+        width: 110,
+        decoration: BoxDecoration(
+          color: GoldFitTheme.surfaceLight,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.07),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Image
+              _buildItemImage(item),
+              // Season badge
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                    ),
+                  ),
+                  child: Text(
+                    item.color,
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds image for clothing item card
+  Widget _buildItemImage(ClothingItem item) {
+    if (item.imageUrl.contains('/') || item.imageUrl.contains('\\')) {
+      return FutureBuilder<String>(
+        future: ImageStorageManager().getImagePath(item.imageUrl),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            final file = File(snapshot.data!);
+            return file.existsSync()
+                ? Image.file(file, fit: BoxFit.cover)
+                : const SizedBox.expand(child: ColoredBox(color: GoldFitTheme.yellow100));
+          }
+          return const SizedBox.expand(child: ColoredBox(color: GoldFitTheme.yellow100));
+        },
+      );
+    }
+    return Container(
+      color: GoldFitTheme.yellow100,
+      child: const Icon(Icons.checkroom, color: GoldFitTheme.gold600, size: 40),
     );
   }
 
@@ -415,12 +585,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   await seeder.seed();
                   
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Database seeded successfully! Please restart the app or refresh.')),
                   );
                 } catch (e) {
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Failed to seed: $e'), backgroundColor: Colors.red),
                   );
                 }

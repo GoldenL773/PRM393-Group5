@@ -1,6 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:goldfit_frontend/core/database/migrations/migration.dart';
 import 'package:goldfit_frontend/core/database/migrations/migration_v1.dart';
+import 'package:goldfit_frontend/core/database/migrations/migration_v2.dart';
+import 'package:goldfit_frontend/core/database/migrations/migration_v3.dart';
 
 /// Manages and executes database migrations in sequential order.
 class MigrationRunner {
@@ -8,6 +10,8 @@ class MigrationRunner {
   /// New migrations should be added to this list as they are created.
   static final List<Migration> _migrations = [
     MigrationV1(),
+    MigrationV2(),
+    MigrationV3(),
   ];
 
   /// Executes all migrations between [fromVersion] and [toVersion].

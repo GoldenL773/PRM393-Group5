@@ -1724,7 +1724,7 @@ class _ClothingSelectorBottomSheetState extends State<_ClothingSelectorBottomShe
             if (isSelected) {
               appState.deselectItemForTryOn(item.id);
             } else {
-              appState.selectItemForTryOn(item.id);
+              appState.selectItemForTryOn(item.id, item: item);
             }
           },
         );

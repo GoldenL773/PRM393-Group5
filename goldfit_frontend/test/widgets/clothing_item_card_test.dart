@@ -74,7 +74,7 @@ void main() {
         expect(find.byIcon(expectedIcon), findsOneWidget,
             reason: 'Expected icon $expectedIcon for type $type');
 
-        // Clear the widget tree for next iteration
+        // Clear the widgets tree for next iteration
         await tester.pumpWidget(Container());
       }
     });

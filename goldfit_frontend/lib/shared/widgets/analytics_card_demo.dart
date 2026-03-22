@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:goldfit_frontend/shared/widgets/analytics_card.dart';
 
-/// Demo screen to showcase the AnalyticsCard widget.
+/// Demo screen to showcase the AnalyticsCard widgets.
 /// This is for development and testing purposes only.
 class AnalyticsCardDemo extends StatelessWidget {
   const AnalyticsCardDemo({super.key});

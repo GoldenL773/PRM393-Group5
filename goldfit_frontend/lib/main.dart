@@ -31,6 +31,12 @@ import 'package:goldfit_frontend/features/favorites/favorites_screen.dart';
 
 import 'package:goldfit_frontend/features/debug/debug_log_viewer_screen.dart';
 
+// Authentication imports
+import 'package:goldfit_frontend/features/auth/auth_viewmodel.dart';
+import 'package:goldfit_frontend/features/auth/auth_screen.dart';
+import 'package:goldfit_frontend/shared/repositories/auth_repository.dart';
+import 'package:goldfit_frontend/shared/repositories/auth_repository_impl.dart';
+
 void main() async {
   // Ensure Flutter bindings are initialized before async operations
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,8 +53,10 @@ void main() async {
   final outfitRepo = OutfitRepositoryImpl(dbManager);
   final analyticsRepo = AnalyticsRepositoryImpl(dbManager);
 
+  // Create auth repository with database
+  final authRepo = AuthRepositoryImpl(dbManager);
+
   // Initialize and run data migration if needed
-  // migrateIfNeeded only runs once (checks a flag in DB). User data is preserved.
   final mockDataProvider = MockDataProvider();
   final migrationService = DataMigrationService(
     dbManager,
@@ -57,9 +65,9 @@ void main() async {
   );
   await migrationService.migrateIfNeeded(mockDataProvider);
 
-
   runApp(
     GoldFitApp(
+      authRepository: authRepo,
       clothingRepository: clothingRepo,
       outfitRepository: outfitRepo,
       analyticsRepository: analyticsRepo,
@@ -68,12 +76,14 @@ void main() async {
 }
 
 class GoldFitApp extends StatelessWidget {
+  final AuthRepository authRepository;
   final ClothingRepository clothingRepository;
   final OutfitRepository outfitRepository;
   final AnalyticsRepository analyticsRepository;
 
   const GoldFitApp({
     super.key,
+    required this.authRepository,
     required this.clothingRepository,
     required this.outfitRepository,
     required this.analyticsRepository,
@@ -83,6 +93,14 @@ class GoldFitApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Auth Repository and ViewModel
+        Provider<AuthRepository>.value(value: authRepository),
+        ChangeNotifierProvider(
+          create: (context) => AuthViewModel(
+            context.read<AuthRepository>(),
+          ),
+        ),
+
         // Repositories
         Provider<ClothingRepository>.value(value: clothingRepository),
         Provider<OutfitRepository>.value(value: outfitRepository),
@@ -123,7 +141,27 @@ class GoldFitApp extends StatelessWidget {
       child: MaterialApp(
         title: 'GoldFit',
         theme: GoldFitTheme.lightTheme,
-        home: const AppShell(),
+        home: Consumer<AuthViewModel>(
+          builder: (context, authVm, _) {
+            // Show loading indicator while checking auth state
+            if (authVm.isLoading) {
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFC5A028),
+                  ),
+                ),
+              );
+            }
+
+            // If authenticated, show main app, otherwise show auth screen
+            if (authVm.isAuthenticated) {
+              return const AppShell();
+            }
+
+            return const AuthScreen();
+          },
+        ),
         routes: {
           AppRoutes.itemDetail: (context) => const ItemDetailScreen(),
           AppRoutes.editItem: (context) => const EditClothingScreen(),
@@ -132,6 +170,7 @@ class GoldFitApp extends StatelessWidget {
           AppRoutes.recommendations: (context) => const RecommendationsScreen(),
           AppRoutes.favorites: (context) => const FavoritesScreen(),
           AppRoutes.debugLogs: (context) => const DebugLogViewerScreen(),
+          AppRoutes.auth: (context) => const AuthScreen(),
         },
       ),
     );

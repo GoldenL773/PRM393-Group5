@@ -150,7 +150,7 @@ class _StylingScreenState extends State<StylingScreen> {
   }
 }
 
-/// Vibe card widget for predefined vibe options
+/// Vibe card widgets for predefined vibe options
 class _VibeCard extends StatelessWidget {
   final String name;
   final IconData icon;

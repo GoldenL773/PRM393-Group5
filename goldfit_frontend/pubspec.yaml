@@ -44,7 +44,7 @@ dependencies:
   # Google Fonts for Manrope font family
   google_fonts: ^6.2.1
   
-  # Calendar widget for planner screen
+  # Calendar widgets for planner screen
   table_calendar: ^3.1.2
   
   # SQLite database for local persistence
@@ -62,7 +62,7 @@ dependencies:
   geocoding: ^4.0.0
   shared_preferences: ^2.5.4
   add_2_calendar: ^3.0.1
-
+  google_sign_in: ^6.1.5
 dev_dependencies:
   flutter_test:
     sdk: flutter

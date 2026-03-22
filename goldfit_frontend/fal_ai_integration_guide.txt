@@ -1,0 +1,40 @@
+// TÀI LIỆU BACKUP: TÍCH HỢP FAL.AI VTO API
+// 
+// Trong trường hợp Gemini 2.5 Flash Image API không đáp ứng được yêu cầu về độ
+// photorealistic (đặc biệt là đối với các loại vải phức tạp hoặc tư thế khó),
+// hệ thống đã được thiết kế mở (modular) để dễ dàng chuyển đổi sang các API
+// chuyên dụng cho Virtual Try-On như fal.ai.
+//
+// Cách thức tích hợp (nếu cần):
+//
+// 1. Tạo class mới: FalAiService implements (hoặc thay thế) các phương thức
+//    trong GeminiService liên quan đến hình ảnh.
+//
+// 2. Endpoint của fal.ai thường yêu cầu URL của ảnh thay vì base64. 
+//    Do đó, quy trình sẽ thay đổi:
+//    - Upload ảnh người dùng và quần áo lên một cloud storage (như Firebase Storage
+//      hoặc AWS S3).
+//    - Lấy public URLs của các ảnh này.
+//    - Gửi request đến fal.ai với các URLs.
+//    - fal.ai xử lý và trả về URL của ảnh kết quả.
+//    - Tải ảnh kết quả về và hiển thị.
+//
+// 3. Cấu trúc Payload tham khảo (fal.ai / tryon):
+//    {
+//      "model_image_url": "https://example.com/user_model.jpg",
+//      "garment_image_url": "https://example.com/garment.jpg",
+//      "category": "tops" // hoặc "bottoms", "dresses"
+//    }
+//
+// 4. Ưu điểm của fal.ai:
+//    - Mô hình chuyên dụng (ví dụ: OOTDiffusion, Kling) cho ra nếp nhăn vải thật hơn.
+//    - Giữ nguyên được chi tiết khuôn mặt người dùng tốt hơn so với text-to-image chung.
+//
+// 5. Khuyết điểm:
+//    - Cần upload ảnh public (tốn kém chi phí lưu trữ/băng thông).
+//    - Phải quản lý API key riêng cho fal.ai.
+//    - Giá thành có thể cao hơn Gemini 2.5 Flash.
+//
+// Kết luận: Hiện tại luồng Gemini + Standardization + Multi-image composition 
+// (đã implement trong try_on_screen.dart và gemini_service.dart) cung cấp sự 
+// cân bằng tốt nhất giữa chi phí, tốc độ và chất lượng cho dự án môn học/MVP.

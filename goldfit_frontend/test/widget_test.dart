@@ -7,15 +7,18 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:goldfit_frontend/main.dart';
 import 'package:goldfit_frontend/shared/repositories/analytics_repository.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository.dart';
+import 'package:goldfit_frontend/shared/repositories/collection_repository.dart';
 import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
 import 'package:goldfit_frontend/shared/repositories/auth_repository.dart';
 import 'package:goldfit_frontend/features/auth/models/user_model.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/models/outfit.dart';
 import 'package:goldfit_frontend/shared/models/filter_state.dart';
+import 'package:goldfit_frontend/shared/models/wardrobe_collection.dart';
 import 'package:goldfit_frontend/shared/models/wardrobe_analytics.dart';
 
 // Create minimal mock classes directly here
@@ -134,7 +137,36 @@ class MockAuthRepository implements AuthRepository {
   }
 }
 
+class MockCollectionRepository implements CollectionRepository {
+  @override
+  Future<WardrobeCollection> create(WardrobeCollection collection) async =>
+      collection;
+
+  @override
+  Future<WardrobeCollection?> getById(String id) async => null;
+
+  @override
+  Future<List<WardrobeCollection>> getAll() async => [];
+
+  @override
+  Future<WardrobeCollection> update(WardrobeCollection collection) async =>
+      collection;
+
+  @override
+  Future<void> delete(String id) async {}
+}
+}
+
 void main() {
+  setUpAll(() async {
+    dotenv.loadFromString(envString: '''
+GEMINI_API_KEY=
+GEMINI_API_KEY_TEXT=
+OPENWEATHER_API_KEY=
+REMOVE_BG_API_KEY=
+''');
+  });
+
   testWidgets('GoldFit app smoke test', (WidgetTester tester) async {
     // Create a mock auth repository with no user (not authenticated)
     final mockAuthRepo = MockAuthRepository(currentUser: null);
@@ -144,6 +176,7 @@ void main() {
       authRepository: mockAuthRepo,
       analyticsRepository: MockAnalyticsRepository(),
       clothingRepository: MockClothingRepository(),
+      collectionRepository: MockCollectionRepository(),
       outfitRepository: MockOutfitRepository(),
     ));
 
@@ -154,6 +187,8 @@ void main() {
     // Verify that the app displays the welcome message
     expect(find.text('Welcome Back'), findsOneWidget);
     expect(find.text('Sign in to continue your journey'), findsOneWidget);
+    // Optionally, you may also check that the main app shell is not displayed
+    expect(find.byType(BottomNavigationBar), findsNothing);
   });
 
   testWidgets('GoldFit app shows main screen when authenticated',

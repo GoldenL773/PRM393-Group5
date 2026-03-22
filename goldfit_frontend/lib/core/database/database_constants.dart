@@ -6,6 +6,7 @@ library;
 class DatabaseConstants {
   // Database configuration
   static const String databaseName = 'goldfit.db';
+
   static const int databaseVersion = 6;
 
   // Table names
@@ -19,6 +20,8 @@ class DatabaseConstants {
   static const String tableUserPreferences = 'user_preferences';
   static const String tableTags = 'tags';
   static const String tableClothingTags = 'clothing_tags';
+  static const String tableCollections = 'collections';
+  static const String tableCollectionItems = 'collection_items';
 
   // clothing_items table columns
   static const String columnId = 'id';
@@ -62,7 +65,8 @@ class DatabaseConstants {
   // try_on_sessions table columns
   static const String columnBasePhotoId = 'base_photo_id';
   static const String columnMode = 'mode';
-  static const String columnSessionResultImagePath = 'session_result_image_path';
+  static const String columnSessionResultImagePath =
+      'session_result_image_path';
 
   // user_preferences table columns
   static const String columnKey = 'key';
@@ -73,6 +77,7 @@ class DatabaseConstants {
 
   // tags table columns
   static const String columnTagId = 'tag_id';
+  static const String columnCollectionId = 'collection_id';
 
   // Index names
   static const String indexClothingType = 'idx_clothing_type';
@@ -92,6 +97,10 @@ class DatabaseConstants {
   static const String indexTagCategory = 'idx_tag_category';
   static const String indexClothingTagsItem = 'idx_clothing_tags_item';
   static const String indexClothingTagsTag = 'idx_clothing_tags_tag';
+  static const String indexCollectionCreated = 'idx_collection_created';
+  static const String indexCollectionItemsCollection =
+      'idx_collection_items_collection';
+  static const String indexCollectionItemsItem = 'idx_collection_items_item';
 
   // Add to existing DatabaseConstants class:
 

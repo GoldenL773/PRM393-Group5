@@ -20,15 +20,15 @@ class MigrationRunner {
   ];
 
   /// Executes all migrations between [fromVersion] and [toVersion].
-  /// 
+  ///
   /// Migrations are executed in ascending order by version number.
   /// Only migrations with version > fromVersion and version <= toVersion
   /// are executed.
-  /// 
+  ///
   /// Example:
   /// - If fromVersion = 0 and toVersion = 3, migrations 1, 2, and 3 run
   /// - If fromVersion = 2 and toVersion = 4, migrations 3 and 4 run
-  /// 
+  ///
   /// Throws an exception if any migration fails.
   static Future<void> runMigrations(
     Database db,

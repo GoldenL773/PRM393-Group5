@@ -41,39 +41,69 @@ import 'package:goldfit_frontend/shared/repositories/auth_repository_impl.dart';
 void main() async {
   // Ensure Flutter bindings are initialized before async operations
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('DEBUG: Flutter bindings initialized');
 
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
+  try {
+    // Load environment variables
+    debugPrint('DEBUG: Loading .env...');
+    await dotenv.load(fileName: ".env");
+    debugPrint('DEBUG: .env loaded successfully');
 
-  // Initialize database
-  final dbManager = DatabaseManager();
-  await dbManager.database; // Ensure database is initialized
+    // Initialize database
+    debugPrint('DEBUG: Initializing DatabaseManager...');
+    final dbManager = DatabaseManager();
+    debugPrint('DEBUG: Getting database instance (may trigger migrations)...');
+    await dbManager.database; // Ensure database is initialized
+    debugPrint('DEBUG: Database initialized successfully');
 
-  // Create repository instances
-  final clothingRepo = ClothingRepositoryImpl(dbManager);
-  final outfitRepo = OutfitRepositoryImpl(dbManager);
-  final analyticsRepo = AnalyticsRepositoryImpl(dbManager);
+    // Create repository instances
+    final clothingRepo = ClothingRepositoryImpl(dbManager);
+    final outfitRepo = OutfitRepositoryImpl(dbManager);
+    final analyticsRepo = AnalyticsRepositoryImpl(dbManager);
 
-  // Create auth repository with database
-  final authRepo = AuthRepositoryImpl(dbManager);
+    // Create auth repository with database
+    final authRepo = AuthRepositoryImpl(dbManager);
 
-  // Initialize and run data migration if needed
-  final mockDataProvider = MockDataProvider();
-  final migrationService = DataMigrationService(
-    dbManager,
-    clothingRepo,
-    outfitRepo,
-  );
-  await migrationService.migrateIfNeeded(mockDataProvider);
+    // Initialize and run data migration if needed
+    debugPrint('DEBUG: Starting data migration check...');
+    final mockDataProvider = MockDataProvider();
+    final migrationService = DataMigrationService(
+      dbManager,
+      clothingRepo,
+      outfitRepo,
+    );
+    await migrationService.migrateIfNeeded(mockDataProvider);
+    debugPrint('DEBUG: Data migration check/execution finished');
 
-  runApp(
-    GoldFitApp(
-      authRepository: authRepo,
-      clothingRepository: clothingRepo,
-      outfitRepository: outfitRepo,
-      analyticsRepository: analyticsRepo,
-    ),
-  );
+    debugPrint('DEBUG: Calling runApp...');
+    runApp(
+      GoldFitApp(
+        authRepository: authRepo,
+        clothingRepository: clothingRepo,
+        outfitRepository: outfitRepo,
+        analyticsRepository: analyticsRepo,
+      ),
+    );
+  } catch (e, stackTrace) {
+    debugPrint('DEBUG: FATAL ERROR during startup: $e');
+    debugPrint('DEBUG: StackTrace: $stackTrace');
+    
+    // Fallback to show error in app if possible, or at least keep log visible
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              'Failed to start GoldFit:\n$e',
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    ));
+  }
 }
 
 class GoldFitApp extends StatelessWidget {

@@ -332,6 +332,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         final item = items[index];
         return ClothingItemCard(
           item: item,
+          onFavoriteToggle: () {
+            context.read<WardrobeViewModel>().toggleFavorite(item.id);
+          },
           onTap: () {
             // Navigate to item detail screen with item ID
             final navigationManager = Provider.of<NavigationManager>(context, listen: false);

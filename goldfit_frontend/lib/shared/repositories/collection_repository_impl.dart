@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:goldfit_frontend/core/database/database_manager.dart';
 import 'package:goldfit_frontend/core/database/database_constants.dart';
@@ -40,7 +41,8 @@ class CollectionRepositoryImpl implements CollectionRepository {
 
       return collection;
     } catch (e, stackTrace) {
-      ErrorLogger.log(
+      debugPrint('SQL ERROR creating collection: $e');
+      await ErrorLogger.log(
         'Failed to create collection: $e',
         context: 'CollectionRepository.insert',
         error: e,

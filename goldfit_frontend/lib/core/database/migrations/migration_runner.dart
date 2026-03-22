@@ -6,6 +6,8 @@ import 'package:goldfit_frontend/core/database/migrations/migration_v3.dart';
 import 'package:goldfit_frontend/core/database/migrations/migration_v4.dart';
 import 'package:goldfit_frontend/core/database/migrations/migration_v5.dart';
 import 'package:goldfit_frontend/core/database/migrations/migration_v6.dart';
+import 'package:goldfit_frontend/core/database/migrations/migration_v7.dart';
+
 /// Manages and executes database migrations in sequential order.
 class MigrationRunner {
   /// List of all available migrations, ordered by version.
@@ -15,8 +17,9 @@ class MigrationRunner {
     MigrationV2(),
     MigrationV3(),
     MigrationV4(),
-    MigrationV5(), // Add V5
-    MigrationV6(), // Add V6
+    MigrationV5(),
+    MigrationV6(),
+    MigrationV7(),
   ];
 
   /// Executes all migrations between [fromVersion] and [toVersion].

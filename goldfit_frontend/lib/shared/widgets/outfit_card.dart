@@ -4,9 +4,9 @@ import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 
-/// A card widget that displays an outfit with its items, name, and vibe label.
+/// A card widgets that displays an outfit with its items, name, and vibe label.
 /// 
-/// This widget is used to show outfit recommendations on the home screen and
+/// This widgets is used to show outfit recommendations on the home screen and
 /// in other contexts where outfits need to be displayed. It shows the outfit's
 /// clothing items in a horizontal layout, along with the outfit name and vibe.
 /// 
@@ -124,7 +124,7 @@ class OutfitCard extends StatelessWidget {
     );
   }
 
-  /// Builds the image widget for a clothing item thumbnail.
+  /// Builds the image widgets for a clothing item thumbnail.
   Widget _buildItemImage(ClothingItem item) {
     if (item.imageUrl.contains('/')) {
       return LocalImageWidget(

@@ -3,6 +3,7 @@
 class AppRoutes {
   // Main navigation routes (bottom tabs)
   static const String home = '/';
+  static const String auth = '/auth';
   static const String wardrobe = '/wardrobe';
   static const String tryOn = '/try-on';
   static const String planner = '/planner';
@@ -16,4 +17,5 @@ class AppRoutes {
   static const String recommendations = '/recommendations';
   static const String favorites = '/favorites';
   static const String debugLogs = '/debug-logs';
+  static const String collectionEditor = '/collection-editor';
 }

@@ -343,7 +343,7 @@ void main() {
       );
     });
 
-    testWidgets('IndexedStack preserves widget state during navigation', (tester) async {
+    testWidgets('IndexedStack preserves widgets state during navigation', (tester) async {
       // **Validates: Requirements 1.3, 13.4, 15.4**
       
       await tester.pumpWidget(

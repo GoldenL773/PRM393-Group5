@@ -54,13 +54,35 @@ class ItemDetailScreen extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          TextButton.icon(
-            icon: const Icon(Icons.edit, size: 16, color: goldAccent),
-            label: const Text('Edit', style: TextStyle(color: goldAccent, fontWeight: FontWeight.bold)),
-            onPressed: () {
-              final navigationManager = Provider.of<NavigationManager>(context, listen: false);
-              navigationManager.navigateToEditItem(context, item.id);
-            },
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: Icon(
+                item.isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: item.isFavorite ? Colors.red : textDark,
+              ),
+              onPressed: () {
+                viewModel.toggleFavorite(item.id);
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.edit, color: goldAccent),
+              onPressed: () {
+                final navigationManager = Provider.of<NavigationManager>(context, listen: false);
+                navigationManager.navigateToEditItem(context, item.id);
+              },
+            ),
           ),
         ],
       ),

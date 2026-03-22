@@ -38,8 +38,12 @@ class _LocalImageWidgetState extends State<LocalImageWidget> {
   }
 
   void _initFuture() {
-    if (!widget.imagePath.startsWith('http') && !widget.imagePath.startsWith('assets/')) {
+    if (!widget.imagePath.startsWith('http') &&
+        !widget.imagePath.startsWith('assets/') &&
+        widget.imagePath.isNotEmpty) {
       _imagePathFuture = ImageStorageManager().getImagePath(widget.imagePath);
+    } else {
+      _imagePathFuture = Future.value(widget.imagePath);
     }
   }
 

@@ -38,6 +38,7 @@ class MigrationV1 implements Migration {
         ${DatabaseConstants.columnSeasons} TEXT NOT NULL,
         ${DatabaseConstants.columnPrice} REAL,
         ${DatabaseConstants.columnUsageCount} INTEGER NOT NULL DEFAULT 0,
+        ${DatabaseConstants.columnIsFavorite} INTEGER NOT NULL DEFAULT 0,
         ${DatabaseConstants.columnAiTags} TEXT,
         ${DatabaseConstants.columnCreatedAt} INTEGER NOT NULL,
         ${DatabaseConstants.columnUpdatedAt} INTEGER NOT NULL

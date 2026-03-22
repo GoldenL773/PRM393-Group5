@@ -87,7 +87,11 @@ class DatabaseManager {
 
     // Enable WAL mode for better concurrent access performance
     // WAL allows multiple readers and one writer to operate simultaneously
-    await db.rawQuery('PRAGMA journal_mode = WAL');
+    try {
+      await db.rawQuery('PRAGMA journal_mode = WAL');
+    } catch (_) {
+      // Some web database backends do not support WAL mode.
+    }
   }
 
   /// Called when the database is created for the first time

@@ -407,7 +407,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
   }
 
   /// Builds the Quick Try Mode with 2D overlay
-  /// Uses Stack widget to layer clothing items on base photo
+  /// Uses Stack widgets to layer clothing items on base photo
   /// Requirements: 8.4
   Widget _buildQuickTryMode(BuildContext context, AppState appState) {
     if (_isStandardizingModel) {
@@ -1339,7 +1339,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
     }
   }
 
-  /// Builds the image widget for a clothing item
+  /// Builds the image widgets for a clothing item
   Widget _buildClothingImage(ClothingItem item, {double? width, double? height}) {
     // Priority 1: cleaned image in memory cache
     if (_cleanedGarmentsCache.containsKey(item.id)) {
@@ -1815,7 +1815,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
   }
 }
 
-/// Custom widget for mode toggle buttons
+/// Custom widgets for mode toggle buttons
 class _ModeToggleButton extends StatelessWidget {
   final String label;
   final bool isSelected;
@@ -1875,7 +1875,7 @@ class _OverlayPosition {
   });
 }
 
-/// Clothing selector bottom sheet widget
+/// Clothing selector bottom sheet widgets
 /// Displays a grid of wardrobe items with multi-select capability
 /// Requirements: 8.3, 8.4
 class _ClothingSelectorBottomSheet extends StatefulWidget {
@@ -2110,7 +2110,7 @@ class _ClothingSelectorBottomSheetState extends State<_ClothingSelectorBottomShe
   }
 }
 
-/// Individual clothing item selector widget with selection indicator
+/// Individual clothing item selector widgets with selection indicator
 class _ClothingItemSelector extends StatelessWidget {
   final ClothingItem item;
   final bool isSelected;

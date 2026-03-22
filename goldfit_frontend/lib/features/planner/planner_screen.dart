@@ -10,8 +10,8 @@ import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:intl/intl.dart';
 
 /// Planner screen displaying calendar view for outfit planning
-/// Shows week/month toggle, calendar widget, and outfit assignment interface
-///
+/// Shows week/month toggle, calendar widgets, and outfit assignment interface
+/// 
 /// Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 14.3, 14.4
 class PlannerScreen extends StatefulWidget {
   const PlannerScreen({super.key});
@@ -1191,3 +1191,43 @@ class _PlannerScreenState extends State<PlannerScreen> {
     );
   }
 }
+
+/// View toggle button widgets for Week/Month selection
+class _ViewToggleButton extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _ViewToggleButton({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? GoldFitTheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isActive ? GoldFitTheme.primary : GoldFitTheme.textLight,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+            color: isActive ? GoldFitTheme.textDark : GoldFitTheme.textMedium,
+          ),
+        ),
+      ),
+    );
+  }
+}
+

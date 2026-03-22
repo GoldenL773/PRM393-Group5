@@ -273,6 +273,7 @@ class ClothingRepositoryImpl implements ClothingRepository {
           jsonEncode(item.seasons.map((s) => s.toString().split('.').last).toList()),
       DatabaseConstants.columnPrice: item.price,
       DatabaseConstants.columnUsageCount: item.usageCount,
+      DatabaseConstants.columnIsFavorite: item.isFavorite ? 1 : 0,
       DatabaseConstants.columnAiTags: null,
       DatabaseConstants.columnCreatedAt: item.addedDate.millisecondsSinceEpoch,
       DatabaseConstants.columnUpdatedAt: DateTime.now().millisecondsSinceEpoch,
@@ -300,6 +301,7 @@ class ClothingRepositoryImpl implements ClothingRepository {
       usageCount: map[DatabaseConstants.columnUsageCount] as int,
       addedDate: DateTime.fromMillisecondsSinceEpoch(
           map[DatabaseConstants.columnCreatedAt] as int),
+      isFavorite: (map[DatabaseConstants.columnIsFavorite] as int?) == 1,
     );
   }
 }

@@ -157,7 +157,7 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pump();
 
-      // Should have a Stack widget for layering
+      // Should have a Stack widgets for layering
       expect(find.byType(Stack), findsWidgets);
     });
 
@@ -204,7 +204,7 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pump();
 
-      // Verify Stack widget exists (layering is handled by Stack)
+      // Verify Stack widgets exists (layering is handled by Stack)
       expect(find.byType(Stack), findsWidgets);
       
       // Verify selected items are in the state

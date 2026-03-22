@@ -44,11 +44,12 @@ dependencies:
   # Google Fonts for Manrope font family
   google_fonts: ^6.2.1
   
-  # Calendar widget for planner screen
+  # Calendar widgets for planner screen
   table_calendar: ^3.1.2
   
   # SQLite database for local persistence
   sqflite: ^2.4.1
+  sqflite_common_ffi_web: ^1.0.0
   
   # Path provider for accessing device directories
   path_provider: ^2.1.5
@@ -64,6 +65,7 @@ dependencies:
   add_2_calendar: ^3.0.1
   image: ^4.8.0
 
+  google_sign_in: ^6.1.5
 dev_dependencies:
   flutter_test:
     sdk: flutter

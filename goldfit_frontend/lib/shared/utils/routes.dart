@@ -15,4 +15,5 @@ class AppRoutes {
   static const String recommendations = '/recommendations';
   static const String favorites = '/favorites';
   static const String debugLogs = '/debug-logs';
+  static const String collectionEditor = '/collection-editor';
 }

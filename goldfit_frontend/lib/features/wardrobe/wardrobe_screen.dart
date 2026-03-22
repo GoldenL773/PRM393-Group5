@@ -6,17 +6,21 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/models/filter_state.dart';
+import 'package:goldfit_frontend/shared/models/wardrobe_collection.dart';
+import 'package:goldfit_frontend/features/wardrobe/collection_viewmodel.dart';
 import 'package:goldfit_frontend/features/wardrobe/wardrobe_viewmodel.dart';
 import 'package:goldfit_frontend/shared/widgets/clothing_item_card.dart';
 import 'package:goldfit_frontend/shared/widgets/category_tab.dart';
 import 'package:goldfit_frontend/shared/widgets/filter_chip.dart' as custom;
+import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
+import 'package:goldfit_frontend/shared/utils/routes.dart';
 import 'package:goldfit_frontend/shared/utils/navigation_manager.dart';
 import 'package:goldfit_frontend/core/storage/image_storage_manager.dart';
 import 'package:goldfit_frontend/shared/services/gemini_service.dart';
 
 /// Wardrobe screen displaying clothing items in a grid with category tabs and filtering.
-/// 
+///
 /// This screen shows:
 /// - App bar with filter button
 /// - Category tabs (All, Tops, Bottoms, Outerwear, Shoes, Accessories)
@@ -24,9 +28,9 @@ import 'package:goldfit_frontend/shared/services/gemini_service.dart';
 /// - Responsive grid: 2 columns in portrait mode, 3 columns in landscape mode
 /// - Loading state while fetching items
 /// - Error state if loading fails
-/// 
+///
 /// The grid automatically adapts to orientation changes and preserves scroll position.
-/// 
+///
 /// Requirements: 4.1, 4.2, 4.5, 5.1, 14.3, 14.4, 15.1, 15.2, 15.3, 15.4
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key});
@@ -45,6 +49,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     // Load items when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<WardrobeViewModel>().loadItems();
+      context.read<CollectionViewModel?>()?.loadCollections();
     });
   }
 
@@ -52,88 +57,103 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   Widget build(BuildContext context) {
     return Consumer<WardrobeViewModel>(
       builder: (context, viewModel, child) {
+        final collectionViewModel = context.watch<CollectionViewModel?>();
         final filterState = viewModel.filters;
-        final filteredItems = _applyLocalFilters(viewModel.items, _selectedCategory, filterState);
+        final filteredItems = _applyLocalFilters(
+          viewModel.items,
+          _selectedCategory,
+          filterState,
+        );
 
-    return Scaffold(
-      backgroundColor: GoldFitTheme.backgroundLight,
-      appBar: AppBar(
-        title: const Text('Wardrobe'),
-        actions: [
-          // Add new clothing button
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Add new item',
-            onPressed: () {
-              _showAddClothingOptions(context, viewModel);
-            },
-          ),
-          // Filter button
-          IconButton(
-            icon: Stack(
-              children: [
-                const Icon(Icons.filter_list),
-                // Show badge if filters are active
-                if (!filterState.isEmpty)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: GoldFitTheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '${filterState.activeFilterCount}',
-                        style: const TextStyle(
-                          color: GoldFitTheme.textDark,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+        return Scaffold(
+          backgroundColor: GoldFitTheme.backgroundLight,
+          appBar: AppBar(
+            title: const Text('Wardrobe'),
+            actions: [
+              // Add new clothing button
+              if (collectionViewModel != null)
+                IconButton(
+                  icon: const Icon(Icons.collections_bookmark_outlined),
+                  tooltip: 'Create collection',
+                  onPressed: () => _openCollectionEditor(context),
+                ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                tooltip: 'Add new item',
+                onPressed: () => _showAddClothingOptions(context, viewModel),
+              ),
+              // Filter button
+              IconButton(
+                icon: Stack(
+                  children: [
+                    const Icon(Icons.filter_list),
+                    // Show badge if filters are active
+                    if (!filterState.isEmpty)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: GoldFitTheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '${filterState.activeFilterCount}',
+                            style: const TextStyle(
+                              color: GoldFitTheme.textDark,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                    ),
-                  ),
-              ],
-            ),
-            onPressed: () {
-              _showFilterBottomSheet(context, viewModel);
-            },
+                  ],
+                ),
+                onPressed: () {
+                  _showFilterBottomSheet(context, viewModel);
+                },
+              ),
+            ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Category tabs
-          _buildCategoryTabs(_selectedCategory),
-          
-          // Active filter chips (if filters are active)
-          if (!filterState.isEmpty)
-            _buildActiveFilterChips(viewModel, filterState),
-          
-          // Error state
-          if (viewModel.error != null)
-            _buildErrorState(viewModel),
-          
-          // Loading or grid view
-          Expanded(
-            child: viewModel.isLoading
-                ? _buildLoadingState()
-                : _buildItemGrid(filteredItems),
+          body: Column(
+            children: [
+              // Collection manager section
+              _buildCollectionSection(
+                context,
+                collectionViewModel,
+                viewModel.items,
+              ),
+
+              // Category tabs
+              _buildCategoryTabs(_selectedCategory),
+
+              // Active filter chips (if filters are active)
+              if (!filterState.isEmpty)
+                _buildActiveFilterChips(viewModel, filterState),
+
+              // Error state
+              if (viewModel.error != null) _buildErrorState(viewModel),
+
+              // Loading or grid view
+              Expanded(
+                child: viewModel.isLoading
+                    ? _buildLoadingState()
+                    : _buildItemGrid(filteredItems),
+              ),
+            ],
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddClothingOptions(context, viewModel),
-        backgroundColor: GoldFitTheme.primary,
-        child: const Icon(Icons.add, color: GoldFitTheme.textDark),
-      ),
-    );
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => _showAddClothingOptions(context, viewModel),
+            backgroundColor: GoldFitTheme.primary,
+            child: const Icon(Icons.add, color: GoldFitTheme.textDark),
+          ),
+        );
       },
     );
   }
@@ -145,13 +165,277 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     FilterState filterState,
   ) {
     var filtered = items;
-    
+
     // Apply category filter
     if (category != null) {
       filtered = filtered.where((item) => item.type == category).toList();
     }
-    
+
     return filtered;
+  }
+
+  Widget _buildCollectionSection(
+    BuildContext context,
+    CollectionViewModel? collectionViewModel,
+    List<ClothingItem> wardrobeItems,
+  ) {
+    if (collectionViewModel == null) {
+      return const SizedBox.shrink();
+    }
+
+    final collections = collectionViewModel.collections;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: GoldFitTheme.tertiary.withOpacity(0.45),
+        border: Border(
+          top: BorderSide(
+            color: GoldFitTheme.yellow200.withOpacity(0.55),
+            width: 1,
+          ),
+          bottom: BorderSide(
+            color: GoldFitTheme.yellow200.withOpacity(0.55),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Collections',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: GoldFitTheme.textDark,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => _openCollectionEditor(context),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Create'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (collectionViewModel.isLoading)
+            const LinearProgressIndicator(minHeight: 2)
+          else if (collections.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: GoldFitTheme.backgroundLight,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: GoldFitTheme.yellow200.withOpacity(0.65),
+                ),
+              ),
+              child: const Text(
+                'No collection yet. Tap Create to build your first set.',
+                style: TextStyle(color: GoldFitTheme.textMedium),
+              ),
+            )
+          else
+            SizedBox(
+              height: 118,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: collections.length,
+                separatorBuilder: (_, index) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final collection = collections[index];
+                  return _buildCollectionCard(
+                    context,
+                    collection,
+                    wardrobeItems,
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollectionCard(
+    BuildContext context,
+    WardrobeCollection collection,
+    List<ClothingItem> wardrobeItems,
+  ) {
+    final previewItems = wardrobeItems
+        .where((item) => collection.itemIds.contains(item.id))
+        .take(3)
+        .toList();
+
+    return SizedBox(
+      width: 190,
+      child: Material(
+        color: GoldFitTheme.backgroundLight,
+        borderRadius: BorderRadius.circular(24),
+        elevation: 0,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () =>
+              _openCollectionEditor(context, collectionId: collection.id),
+          onLongPress: () => _confirmDeleteCollection(context, collection.id),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              color: Colors.white,
+              border: Border.all(
+                color: GoldFitTheme.primary.withOpacity(0.28),
+                width: 1.2,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  collection.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: GoldFitTheme.textDark,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${collection.itemIds.length} item(s)',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: GoldFitTheme.textMedium,
+                  ),
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    for (var i = 0; i < previewItems.length; i++)
+                      Container(
+                        width: 32,
+                        height: 32,
+                        margin: EdgeInsets.only(
+                          right: i == previewItems.length - 1 ? 0 : 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: GoldFitTheme.tertiary.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(
+                            color: GoldFitTheme.yellow200.withOpacity(0.6),
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(99),
+                          child: _buildCollectionPreviewImage(previewItems[i]),
+                        ),
+                      ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: GoldFitTheme.textMedium,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCollectionPreviewImage(ClothingItem item) {
+    if (item.imageUrl.contains('/')) {
+      return LocalImageWidget(imagePath: item.imageUrl, fit: BoxFit.cover);
+    }
+
+    return const Icon(
+      Icons.checkroom,
+      size: 16,
+      color: GoldFitTheme.textMedium,
+    );
+  }
+
+  Future<void> _openCollectionEditor(
+    BuildContext context, {
+    String? collectionId,
+  }) async {
+    if (!mounted) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    final saved = await Navigator.pushNamed(
+      context,
+      AppRoutes.collectionEditor,
+      arguments: {if (collectionId != null) 'collectionId': collectionId},
+    );
+
+    if (saved == true && mounted) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            collectionId == null
+                ? 'Collection created successfully'
+                : 'Collection updated successfully',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmDeleteCollection(
+    BuildContext context,
+    String collectionId,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete collection?'),
+        content: const Text(
+          'This only removes the collection. Wardrobe items are not deleted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true || !context.mounted) {
+      return;
+    }
+
+    try {
+      await context.read<CollectionViewModel>().deleteCollection(collectionId);
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Collection deleted')));
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete collection')),
+        );
+      }
+    }
   }
 
   /// Builds the loading state UI.
@@ -175,10 +459,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           Expanded(
             child: Text(
               viewModel.error!,
-              style: TextStyle(
-                color: Colors.red.shade700,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.red.shade700, fontSize: 14),
             ),
           ),
           TextButton(
@@ -196,12 +477,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: const BoxDecoration(
         color: GoldFitTheme.surfaceLight,
-        border: Border(
-          bottom: BorderSide(
-            color: Color(0xFFF1F5F9),
-            width: 1,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1)),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -215,7 +491,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               onTap: () => setState(() => _selectedCategory = null),
             ),
             const SizedBox(width: 8),
-            
+
             // Category tabs
             ...ClothingType.values.map((type) {
               return Padding(
@@ -234,9 +510,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   /// Builds the active filter chips section.
-  Widget _buildActiveFilterChips(WardrobeViewModel viewModel, FilterState filterState) {
+  Widget _buildActiveFilterChips(
+    WardrobeViewModel viewModel,
+    FilterState filterState,
+  ) {
     final chips = <Widget>[];
-    
+
     // Add color filter chips
     for (final color in filterState.colors) {
       chips.add(
@@ -248,7 +527,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         ),
       );
     }
-    
+
     // Add season filter chips
     for (final season in filterState.seasons) {
       chips.add(
@@ -265,18 +544,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
         color: GoldFitTheme.backgroundLight,
-        border: Border(
-          bottom: BorderSide(
-            color: Color(0xFFF1F5F9),
-            width: 1,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1)),
       ),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: chips,
-      ),
+      child: Wrap(spacing: 8, runSpacing: 8, children: chips),
     );
   }
 
@@ -305,10 +575,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             const SizedBox(height: 8),
             Text(
               'Try adjusting your filters',
-              style: TextStyle(
-                fontSize: 14,
-                color: GoldFitTheme.textLight,
-              ),
+              style: TextStyle(fontSize: 14, color: GoldFitTheme.textLight),
             ),
           ],
         ),
@@ -334,7 +601,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
           item: item,
           onTap: () {
             // Navigate to item detail screen with item ID
-            final navigationManager = Provider.of<NavigationManager>(context, listen: false);
+            final navigationManager = Provider.of<NavigationManager>(
+              context,
+              listen: false,
+            );
             navigationManager.navigateToItemDetail(context, item.id);
           },
         );
@@ -365,11 +635,24 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   /// Shows the filter bottom sheet with color and season options.
-  void _showFilterBottomSheet(BuildContext context, WardrobeViewModel viewModel) {
+  void _showFilterBottomSheet(
+    BuildContext context,
+    WardrobeViewModel viewModel,
+  ) {
     // Available colors from MockDataProvider
     final availableColors = [
-      'Black', 'White', 'Navy', 'Gray', 'Beige', 'Brown',
-      'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple'
+      'Black',
+      'White',
+      'Navy',
+      'Gray',
+      'Beige',
+      'Brown',
+      'Red',
+      'Blue',
+      'Green',
+      'Yellow',
+      'Pink',
+      'Purple',
     ];
 
     // Available seasons
@@ -469,17 +752,17 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                               selectedColor: GoldFitTheme.yellow100,
                               checkmarkColor: GoldFitTheme.gold600,
                               side: BorderSide(
-                                color: isSelected 
-                                    ? GoldFitTheme.primary 
+                                color: isSelected
+                                    ? GoldFitTheme.primary
                                     : const Color(0xFFE2E8F0),
                                 width: isSelected ? 2 : 1,
                               ),
                               labelStyle: TextStyle(
-                                color: isSelected 
-                                    ? GoldFitTheme.gold600 
+                                color: isSelected
+                                    ? GoldFitTheme.gold600
                                     : GoldFitTheme.textMedium,
-                                fontWeight: isSelected 
-                                    ? FontWeight.w600 
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
                                     : FontWeight.w500,
                               ),
                             );
@@ -519,17 +802,17 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                               selectedColor: GoldFitTheme.yellow100,
                               checkmarkColor: GoldFitTheme.gold600,
                               side: BorderSide(
-                                color: isSelected 
-                                    ? GoldFitTheme.primary 
+                                color: isSelected
+                                    ? GoldFitTheme.primary
                                     : const Color(0xFFE2E8F0),
                                 width: isSelected ? 2 : 1,
                               ),
                               labelStyle: TextStyle(
-                                color: isSelected 
-                                    ? GoldFitTheme.gold600 
+                                color: isSelected
+                                    ? GoldFitTheme.gold600
                                     : GoldFitTheme.textMedium,
-                                fontWeight: isSelected 
-                                    ? FontWeight.w600 
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
                                     : FontWeight.w500,
                               ),
                             );
@@ -548,10 +831,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       // Apply filters to ViewModel
-                      viewModel.applyFilters(FilterState(
-                        colors: selectedColors,
-                        seasons: selectedSeasons,
-                      ));
+                      viewModel.applyFilters(
+                        FilterState(
+                          colors: selectedColors,
+                          seasons: selectedSeasons,
+                        ),
+                      );
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
@@ -583,24 +868,25 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   void _removeColorFilter(WardrobeViewModel viewModel, String color) {
     final newColors = List<String>.from(viewModel.filters.colors)
       ..remove(color);
-    viewModel.applyFilters(FilterState(
-      colors: newColors,
-      seasons: viewModel.filters.seasons,
-    ));
+    viewModel.applyFilters(
+      FilterState(colors: newColors, seasons: viewModel.filters.seasons),
+    );
   }
 
   /// Removes a specific season filter.
   void _removeSeasonFilter(WardrobeViewModel viewModel, Season season) {
     final newSeasons = List<Season>.from(viewModel.filters.seasons)
       ..remove(season);
-    viewModel.applyFilters(FilterState(
-      colors: viewModel.filters.colors,
-      seasons: newSeasons,
-    ));
+    viewModel.applyFilters(
+      FilterState(colors: viewModel.filters.colors, seasons: newSeasons),
+    );
   }
 
   /// Shows options to add clothing (Camera or Gallery).
-  void _showAddClothingOptions(BuildContext context, WardrobeViewModel viewModel) {
+  void _showAddClothingOptions(
+    BuildContext context,
+    WardrobeViewModel viewModel,
+  ) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -633,9 +919,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   /// Picks an image from the given source and saves it.
-  Future<void> _pickImage(ImageSource source, WardrobeViewModel viewModel) async {
+  Future<void> _pickImage(
+    ImageSource source,
+    WardrobeViewModel viewModel,
+  ) async {
     if (_isPickingImage) return;
-    
+
     final picker = ImagePicker();
     try {
       setState(() => _isPickingImage = true);
@@ -667,7 +956,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         String relativePath;
 
         try {
-          final processedBase64 = await geminiService.removeBackground(pickedFile.path);
+          final processedBase64 = await geminiService.removeBackground(
+            pickedFile.path,
+          );
           if (processedBase64 != null) {
             final bytes = base64Decode(processedBase64);
             relativePath = await storage.saveImageFromBytes(bytes);
@@ -702,14 +993,28 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   }
 
   /// Shows dialog to enter clothing details before saving.
-  void _showClothingDetailsDialog(BuildContext context, String imagePath, WardrobeViewModel viewModel) {
+  void _showClothingDetailsDialog(
+    BuildContext context,
+    String imagePath,
+    WardrobeViewModel viewModel,
+  ) {
     ClothingType selectedType = ClothingType.tops;
     String selectedColor = 'Black';
     final Set<Season> selectedSeasons = {Season.summer};
 
     final colors = [
-      'Black', 'White', 'Navy', 'Gray', 'Beige', 'Brown',
-      'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple'
+      'Black',
+      'White',
+      'Navy',
+      'Gray',
+      'Beige',
+      'Brown',
+      'Red',
+      'Blue',
+      'Green',
+      'Yellow',
+      'Pink',
+      'Purple',
     ];
 
     showDialog(
@@ -738,25 +1043,25 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Color Dropdown
                 DropdownButtonFormField<String>(
                   initialValue: selectedColor,
                   decoration: const InputDecoration(labelText: 'Color'),
                   items: colors.map((color) {
-                    return DropdownMenuItem(
-                      value: color,
-                      child: Text(color),
-                    );
+                    return DropdownMenuItem(value: color, child: Text(color));
                   }).toList(),
                   onChanged: (value) {
                     if (value != null) setState(() => selectedColor = value);
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Seasons Multi-select
-                const Text('Seasons', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Seasons',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 Wrap(
                   spacing: 8,
                   children: Season.values.map((season) {
@@ -799,10 +1104,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                   seasons: selectedSeasons.toList(),
                   addedDate: DateTime.now(),
                 );
-                
+
                 viewModel.addItem(newItem);
                 Navigator.pop(context);
-                
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Item added successfully')),
                 );

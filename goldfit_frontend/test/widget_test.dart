@@ -5,15 +5,19 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:goldfit_frontend/main.dart';
 import 'package:goldfit_frontend/shared/repositories/analytics_repository.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository.dart';
+import 'package:goldfit_frontend/shared/repositories/collection_repository.dart';
 import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/models/outfit.dart';
 import 'package:goldfit_frontend/shared/models/filter_state.dart';
+import 'package:goldfit_frontend/shared/models/wardrobe_collection.dart';
 import 'package:goldfit_frontend/shared/models/wardrobe_analytics.dart';
 
 // Create minimal mock classes directly here
@@ -58,16 +62,45 @@ class MockOutfitRepository implements OutfitRepository {
   @override Stream<List<Outfit>> watchAll() => Stream.value([]);
 }
 
+class MockCollectionRepository implements CollectionRepository {
+  @override
+  Future<WardrobeCollection> create(WardrobeCollection collection) async =>
+      collection;
+
+  @override
+  Future<WardrobeCollection?> getById(String id) async => null;
+
+  @override
+  Future<List<WardrobeCollection>> getAll() async => [];
+
+  @override
+  Future<WardrobeCollection> update(WardrobeCollection collection) async =>
+      collection;
+
+  @override
+  Future<void> delete(String id) async {}
+}
+
 void main() {
+  setUpAll(() async {
+    dotenv.loadFromString(envString: '''
+GEMINI_API_KEY=
+GEMINI_API_KEY_TEXT=
+OPENWEATHER_API_KEY=
+REMOVE_BG_API_KEY=
+''');
+  });
+
   testWidgets('GoldFit app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(GoldFitApp(
       analyticsRepository: MockAnalyticsRepository(),
       clothingRepository: MockClothingRepository(),
+      collectionRepository: MockCollectionRepository(),
       outfitRepository: MockOutfitRepository(),
     ));
 
-    // Verify that the app displays the title
-    expect(find.text('GoldFit Frontend'), findsOneWidget);
+    // Verify that the app shell renders
+    expect(find.byType(BottomNavigationBar), findsOneWidget);
   });
 }

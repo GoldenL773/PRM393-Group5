@@ -190,6 +190,9 @@ class OutfitDetailsScreen extends StatelessWidget {
             final item = items[index];
             return ClothingItemCard(
               item: item,
+              onFavoriteToggle: () {
+                context.read<FavoritesViewModel>().toggleFavoriteClothing(item);
+              },
               onTap: () {}, // Navigation to clothing details would go here
             );
           },

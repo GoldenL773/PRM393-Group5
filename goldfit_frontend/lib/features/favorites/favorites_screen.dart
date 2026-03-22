@@ -256,32 +256,10 @@ class _FavoriteClothesView extends StatelessWidget {
       itemCount: clothes.length,
       itemBuilder: (context, index) {
         final item = clothes[index];
-        return Stack(
-          children: [
-            ClothingItemCard(
-              item: item,
-              onTap: () {}, // Optional navigation to item details if it exists
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: () => viewModel.toggleFavoriteClothing(item),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.favorite,
-                    size: 16,
-                    color: Colors.red,
-                  ),
-                ),
-              ),
-            ),
-          ],
+        return ClothingItemCard(
+          item: item,
+          onFavoriteToggle: () => viewModel.toggleFavoriteClothing(item),
+          onTap: () {}, // Optional navigation to item details if it exists
         );
       },
     );

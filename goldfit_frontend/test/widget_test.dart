@@ -155,7 +155,6 @@ class MockCollectionRepository implements CollectionRepository {
   @override
   Future<void> delete(String id) async {}
 }
-}
 
 void main() {
   setUpAll(() async {
@@ -213,6 +212,7 @@ REMOVE_BG_API_KEY=
           authRepository: mockAuthRepo,
           analyticsRepository: MockAnalyticsRepository(),
           clothingRepository: MockClothingRepository(),
+          collectionRepository: MockCollectionRepository(),
           outfitRepository: MockOutfitRepository(),
         ));
 
@@ -233,6 +233,7 @@ REMOVE_BG_API_KEY=
       authRepository: mockAuthRepo,
       analyticsRepository: MockAnalyticsRepository(),
       clothingRepository: MockClothingRepository(),
+      collectionRepository: MockCollectionRepository(),
       outfitRepository: MockOutfitRepository(),
     ));
 
@@ -274,6 +275,7 @@ REMOVE_BG_API_KEY=
       authRepository: mockAuthRepo,
       analyticsRepository: MockAnalyticsRepository(),
       clothingRepository: MockClothingRepository(),
+      collectionRepository: MockCollectionRepository(),
       outfitRepository: MockOutfitRepository(),
     ));
 

@@ -28,6 +28,7 @@ import 'package:goldfit_frontend/features/home/home_viewmodel.dart';
 import 'package:goldfit_frontend/features/home/recommendations_viewmodel.dart';
 import 'package:goldfit_frontend/features/favorites/favorites_viewmodel.dart';
 import 'package:goldfit_frontend/features/favorites/favorites_screen.dart';
+import 'package:goldfit_frontend/features/home/settings_screen.dart';
 
 import 'package:goldfit_frontend/features/debug/debug_log_viewer_screen.dart';
 
@@ -131,6 +132,7 @@ class GoldFitApp extends StatelessWidget {
           AppRoutes.styling: (context) => const StylingScreen(),
           AppRoutes.recommendations: (context) => const RecommendationsScreen(),
           AppRoutes.favorites: (context) => const FavoritesScreen(),
+          AppRoutes.settings: (context) => const SettingsScreen(),
           AppRoutes.debugLogs: (context) => const DebugLogViewerScreen(),
         },
       ),

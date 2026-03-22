@@ -7,7 +7,8 @@ class AppRoutes {
   static const String tryOn = '/try-on';
   static const String planner = '/planner';
   static const String insights = '/insights';
-
+  static const String settings = '/settings';
+  
   // Detail and secondary routes
   static const String itemDetail = '/item-detail';
   static const String editItem = '/edit-item';

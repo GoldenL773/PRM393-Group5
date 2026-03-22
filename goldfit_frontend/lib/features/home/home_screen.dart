@@ -58,6 +58,13 @@ class _HomeScreenState extends State<HomeScreen> {
               tooltip: 'View Error Logs',
               onPressed: () => Navigator.pushNamed(context, '/debug-logs'),
             ),
+
+            //Settings button
+            IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'View Settings',
+              onPressed:() => Navigator.pushNamed(context, '/settings'),
+            )
           ],
         ],
       ),

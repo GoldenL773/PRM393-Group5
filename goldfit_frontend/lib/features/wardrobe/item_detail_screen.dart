@@ -58,6 +58,22 @@ class ItemDetailScreen extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: IconButton(
+              icon: Icon(
+                item.isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: item.isFavorite ? Colors.red : GoldFitTheme.textDark,
+              ),
+              onPressed: () {
+                viewModel.toggleFavorite(item.id);
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
               icon: const Icon(Icons.edit, color: GoldFitTheme.textDark),
               onPressed: () {
                 final navigationManager = Provider.of<NavigationManager>(context, listen: false);
@@ -354,7 +370,7 @@ class ItemDetailScreen extends StatelessWidget {
     );
   }
 
-  /// Builds the clothing item image widget
+  /// Builds the clothing item image widgets
   Widget _buildItemImage(ClothingItem item) {
     if (item.imageUrl.startsWith('http')) {
        return Image.network(

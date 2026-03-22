@@ -9,6 +9,7 @@ class ClothingItem {
   final double? price;
   final int usageCount;
   final DateTime addedDate;
+  final bool isFavorite;
 
   ClothingItem({
     required this.id,
@@ -20,6 +21,7 @@ class ClothingItem {
     this.price,
     this.usageCount = 0,
     required this.addedDate,
+    this.isFavorite = false,
   });
 
   /// Creates a copy of this ClothingItem with the given fields replaced with new values.
@@ -31,6 +33,7 @@ class ClothingItem {
     List<Season>? seasons,
     double? price,
     int? usageCount,
+    bool? isFavorite,
   }) {
     return ClothingItem(
       id: id,
@@ -42,6 +45,7 @@ class ClothingItem {
       price: price ?? this.price,
       usageCount: usageCount ?? this.usageCount,
       addedDate: addedDate,
+      isFavorite: isFavorite ?? this.isFavorite,
     );
   }
 
@@ -57,6 +61,7 @@ class ClothingItem {
       'price': price,
       'usageCount': usageCount,
       'addedDate': addedDate.toIso8601String(),
+      'isFavorite': isFavorite,
     };
   }
 
@@ -81,6 +86,7 @@ class ClothingItem {
       price: json['price'] as double?,
       usageCount: json['usageCount'] as int,
       addedDate: DateTime.parse(json['addedDate'] as String),
+      isFavorite: json['isFavorite'] == true || json['isFavorite'] == 1,
     );
   }
 }

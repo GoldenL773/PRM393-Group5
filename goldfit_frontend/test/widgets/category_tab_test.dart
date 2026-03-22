@@ -112,7 +112,7 @@ void main() {
         ),
       );
 
-      // Tap the widget
+      // Tap the widgets
       await tester.tap(find.byType(CategoryTab));
       await tester.pump();
 

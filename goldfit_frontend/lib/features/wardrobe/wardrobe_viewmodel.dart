@@ -107,6 +107,28 @@ class WardrobeViewModel extends ChangeNotifier {
     }
   }
 
+  /// Toggles the favorite status of a clothing item.
+  Future<void> toggleFavorite(String id) async {
+    final itemIndex = _items.indexWhere((i) => i.id == id);
+    if (itemIndex == -1) return;
+    
+    final item = _items[itemIndex];
+    final updatedItem = item.copyWith(isFavorite: !item.isFavorite);
+    
+    try {
+      // Optimistic update
+      _items[itemIndex] = updatedItem;
+      notifyListeners();
+      
+      await _clothingRepository.update(updatedItem);
+    } catch (e) {
+      // Revert on failure
+      _items[itemIndex] = item;
+      notifyListeners();
+      _setError('Failed to update favorite status: $e');
+    }
+  }
+
   /// Deletes a clothing item from the wardrobe.
   Future<void> deleteItem(String id) async {
     try {

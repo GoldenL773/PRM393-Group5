@@ -79,7 +79,7 @@ class DataMigrationService {
         
         // If outfit has an assigned date, migrate the assignment
         if (outfit.assignedDate != null) {
-          await _outfitRepository.assignToDate(outfit.id, outfit.assignedDate!);
+          await _outfitRepository.assignToDate(outfit.id, outfit.assignedDate!, 'morning');
         }
       }
       

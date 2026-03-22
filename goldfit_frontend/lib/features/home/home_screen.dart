@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart'; // added for kDebugMode
@@ -6,13 +5,13 @@ import 'package:goldfit_frontend/features/home/home_viewmodel.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/providers/app_state.dart';
 import 'package:goldfit_frontend/shared/widgets/outfit_card.dart';
+import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 import 'package:goldfit_frontend/shared/utils/navigation_manager.dart';
 import 'package:goldfit_frontend/core/database/database_seeder.dart';
 import 'package:goldfit_frontend/core/database/database_manager.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository.dart';
 import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
-import 'package:goldfit_frontend/core/storage/image_storage_manager.dart';
 
 /// Home screen displaying weather information and outfit recommendations
 /// Shows weather widget, "Get Styled" button, and recommended outfits
@@ -333,25 +332,52 @@ class _HomeScreenState extends State<HomeScreen> {
         // AI Styling advice box
         if (viewModel.stylingAdvice != null) ...[
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: GoldFitTheme.yellow100.withOpacity(0.2),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: GoldFitTheme.yellow200.withOpacity(0.1)),
+              boxShadow: [
+                BoxShadow(
+                  color: GoldFitTheme.gold600.withOpacity(0.15),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+              border: Border.all(color: GoldFitTheme.gold600.withOpacity(0.2), width: 1.5),
             ),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.tips_and_updates, color: GoldFitTheme.gold600),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    viewModel.stylingAdvice!,
-                    style: const TextStyle(
-                      color: GoldFitTheme.textDark,
-                      fontSize: 14,
-                      height: 1.4,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: GoldFitTheme.gold600.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.auto_awesome, color: GoldFitTheme.gold600, size: 18),
                     ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Stylist Insight',
+                      style: TextStyle(
+                        color: GoldFitTheme.gold600,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  viewModel.stylingAdvice!,
+                  style: const TextStyle(
+                    color: GoldFitTheme.textDark,
+                    fontSize: 15,
+                    height: 1.6,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ],
@@ -511,23 +537,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Builds image for clothing item card
   Widget _buildItemImage(ClothingItem item) {
-    if (item.imageUrl.contains('/') || item.imageUrl.contains('\\')) {
-      return FutureBuilder<String>(
-        future: ImageStorageManager().getImagePath(item.imageUrl),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            final file = File(snapshot.data!);
-            return file.existsSync()
-                ? Image.file(file, fit: BoxFit.cover)
-                : const SizedBox.expand(child: ColoredBox(color: GoldFitTheme.yellow100));
-          }
-          return const SizedBox.expand(child: ColoredBox(color: GoldFitTheme.yellow100));
-        },
+    if (item.imageUrl.isEmpty) {
+      return Container(
+        color: GoldFitTheme.yellow100,
+        child: const Icon(Icons.checkroom, color: GoldFitTheme.gold600, size: 40),
       );
     }
-    return Container(
-      color: GoldFitTheme.yellow100,
-      child: const Icon(Icons.checkroom, color: GoldFitTheme.gold600, size: 40),
+    
+    return LocalImageWidget(
+      imagePath: item.imageUrl,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
     );
   }
 

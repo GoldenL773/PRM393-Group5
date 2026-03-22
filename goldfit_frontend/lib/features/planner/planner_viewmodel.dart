@@ -13,13 +13,13 @@ class PlannerViewModel extends ChangeNotifier {
 
   // State properties
   List<Outfit> _outfits = [];
-  final Map<DateTime, Outfit> _calendar = {};
+  final Map<DateTime, Map<String, Outfit>> _calendar = {};
   bool _isLoading = false;
   String? _error;
 
   // Getters
   List<Outfit> get outfits => _outfits;
-  Map<DateTime, Outfit> get calendar => _calendar;
+  Map<DateTime, Map<String, Outfit>> get calendar => _calendar;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -60,9 +60,10 @@ class PlannerViewModel extends ChangeNotifier {
       
       // Populate calendar map with normalized dates
       for (final outfit in assignments) {
-        if (outfit.assignedDate != null) {
+        if (outfit.assignedDate != null && outfit.timeSlot != null) {
           final normalizedDate = _normalizeDate(outfit.assignedDate!);
-          _calendar[normalizedDate] = outfit;
+          _calendar.putIfAbsent(normalizedDate, () => <String, Outfit>{});
+          _calendar[normalizedDate]![outfit.timeSlot!] = outfit;
         }
       }
       
@@ -79,12 +80,12 @@ class PlannerViewModel extends ChangeNotifier {
   /// Creates a calendar assignment in the repository and updates the local state.
   /// The date is normalized to midnight for consistent calendar operations.
   /// Updates error state if the operation fails (e.g., date already has an outfit).
-  Future<void> assignOutfit(String outfitId, DateTime date) async {
+  Future<void> assignOutfit(String outfitId, DateTime date, String timeSlot, {String? eventName, String? startTime}) async {
     try {
       final normalizedDate = _normalizeDate(date);
       
       // Assign in repository
-      await _outfitRepository.assignToDate(outfitId, normalizedDate);
+      await _outfitRepository.assignToDate(outfitId, normalizedDate, timeSlot, eventName: eventName, startTime: startTime);
       
       // Update local state
       final outfit = _outfits.firstWhere(
@@ -92,7 +93,8 @@ class PlannerViewModel extends ChangeNotifier {
         orElse: () => throw Exception('Outfit not found'),
       );
       
-      _calendar[normalizedDate] = outfit.copyWith(assignedDate: normalizedDate);
+      _calendar.putIfAbsent(normalizedDate, () => <String, Outfit>{});
+      _calendar[normalizedDate]![timeSlot] = outfit.copyWith(assignedDate: normalizedDate, timeSlot: timeSlot, eventName: eventName, startTime: startTime);
       notifyListeners();
     } catch (e) {
       _setError('Failed to assign outfit: $e');
@@ -104,28 +106,74 @@ class PlannerViewModel extends ChangeNotifier {
   /// Deletes the calendar assignment from the repository and updates the local state.
   /// The date is normalized to midnight for consistent calendar operations.
   /// Updates error state if the operation fails.
-  Future<void> unassignOutfit(DateTime date) async {
+  Future<void> unassignOutfit(DateTime date, String timeSlot) async {
     try {
       final normalizedDate = _normalizeDate(date);
       
       // Unassign in repository
-      await _outfitRepository.unassignFromDate(normalizedDate);
+      await _outfitRepository.unassignFromDate(normalizedDate, timeSlot);
       
       // Update local state
-      _calendar.remove(normalizedDate);
+      _calendar[normalizedDate]?.remove(timeSlot);
+      if (_calendar[normalizedDate]?.isEmpty ?? false) {
+        _calendar.remove(normalizedDate);
+      }
       notifyListeners();
     } catch (e) {
       _setError('Failed to unassign outfit: $e');
     }
   }
 
-  /// Gets the outfit assigned to a specific date.
+  /// Gets the outfit assigned to a specific date for a specific time slot.
   /// 
-  /// Returns the outfit if one is assigned to the date, null otherwise.
+  /// Returns the outfit if one is assigned to the date and slot, null otherwise.
   /// The date is normalized to midnight for consistent calendar lookups.
-  Outfit? getOutfitForDate(DateTime date) {
+  Outfit? getOutfitForDateAndTime(DateTime date, String timeSlot) {
     final normalizedDate = _normalizeDate(date);
-    return _calendar[normalizedDate];
+    return _calendar[normalizedDate]?[timeSlot];
+  }
+
+  /// Check if a date has any outfits assigned
+  bool hasAnyOutfitForDate(DateTime date) {
+    final normalizedDate = _normalizeDate(date);
+    return _calendar.containsKey(normalizedDate) && _calendar[normalizedDate]!.isNotEmpty;
+  }
+
+  /// Clones all outfits from the source date to the target date.
+  Future<void> cloneDay(DateTime sourceDate, DateTime targetDate) async {
+    _setLoading(true);
+    _setError(null);
+    
+    try {
+      final sourceNormalized = _normalizeDate(sourceDate);
+      final targetNormalized = _normalizeDate(targetDate);
+      
+      final sourceOutfits = _calendar[sourceNormalized];
+      if (sourceOutfits == null || sourceOutfits.isEmpty) {
+        throw Exception('No outfits to clone on the source date.');
+      }
+      
+      for (final entry in sourceOutfits.entries) {
+        final timeSlot = entry.key;
+        final outfit = entry.value;
+        await _outfitRepository.assignToDate(
+          outfit.id, 
+          targetNormalized, 
+          timeSlot, 
+          eventName: outfit.eventName, 
+          startTime: outfit.startTime
+        );
+      }
+      
+      // Reload calendar to reflect new assignments
+      final startOfMonth = DateTime(targetDate.year, targetDate.month, 1);
+      final endOfMonth = DateTime(targetDate.year, targetDate.month + 1, 0);
+      await loadCalendar(startOfMonth, endOfMonth);
+    } catch (e) {
+      _setError('Failed to clone day: $e');
+    } finally {
+      _setLoading(false);
+    }
   }
 
   /// Normalizes a date to midnight (00:00:00) for consistent calendar operations.

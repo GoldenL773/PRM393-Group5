@@ -274,6 +274,72 @@ Return ONLY valid JSON without any markdown formatting.
       return null;
     }
   }
+
+  /// Get specific outfit recommendation based on weather and available wardrobe items
+  Future<String?> getOutfitRecommendation(String weather, List<ClothingItem> wardrobe) async {
+    try {
+      if (_textApiKey == 'PLACEHOLDER_GEMINI_KEY' || wardrobe.isEmpty) {
+        // Fallback or empty wardrobe
+        return null; 
+      }
+
+      // 1. Create minimized wardrobe representation to avoid hitting token limits
+      final conciseWardrobe = wardrobe.map((item) {
+        return {
+          "id": item.id,
+          "type": item.type.name,
+          "color": item.color,
+          "seasons": item.seasons.map((s) => s.toString().split('.').last).toList()
+        };
+      }).toList();
+
+      final wardrobeJson = jsonEncode(conciseWardrobe);
+
+      final prompt = '''
+You are a professional fashion stylist. The current weather is: $weather.
+The user has the following clothing items available in their wardrobe:
+$wardrobeJson
+
+Your task is to select a cohesive outfit from ONLY these provided items that is perfect for the weather.
+Choose at most 1 item from each necessary category (e.g., 1 Top, 1 Bottom, 1 Outerwear if it's cold or rainy, 1 pair of Shoes).
+DO NOT invent items. You must ONLY use the exact IDs provided in the array.
+
+Return a JSON object containing:
+- "advice": A personalized, encouraging paragraph explaining why this exact outfit is a great choice for the weather. (2-3 sentences).
+- "item_ids": An array containing exactly the string "id" of the items you selected to form the outfit.
+
+Example Output:
+{
+  "advice": "You clearly love the timeless appeal of black tops! For 21°C and hazy weather, opt for your black cotton t-shirt to stay comfortable. Pair it with your light blue jeans to balance the look and feel fresh all day.",
+  "item_ids": ["c1xxxx", "c2xxxx", "shxxxx"]
+}
+
+Return ONLY valid JSON without any markdown block formatting (no ` ```json ` tags, just the raw JSON text).
+      ''';
+
+      final content = [Content.text(prompt)];
+      final response = await _textModel.generateContent(content);
+      String result = response.text?.trim() ?? '';
+      
+      // Clean up markdown block if the model included it despite instructions
+      if (result.startsWith('```json')) {
+        result = result.replaceAll('```json', '').replaceAll('```', '').trim();
+      } else if (result.startsWith('```')) {
+         result = result.replaceAll('```', '').trim();
+      }
+
+      ErrorLogger.log(
+        'AI Specific Outfit Request:\\nWeather: $weather\\nResponse: $result',
+        severity: LogSeverity.info,
+        context: 'GeminiService.getOutfitRecommendation',
+      );
+      
+      return result;
+    } catch (e) {
+      print('Error getting outfit recommendation: $e');
+      return null;
+    }
+  }
   Future<String> getStylingAdvice(List<ClothingItem> items, String weather) async {
     try {
       if (items.isEmpty) {

@@ -7,6 +7,7 @@ import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository.dart';
 import 'package:goldfit_frontend/shared/services/weather_service.dart';
 import 'package:goldfit_frontend/shared/services/gemini_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// ViewModel for the Home screen that manages UI state and business logic.
 /// 
@@ -70,11 +71,9 @@ class HomeViewModel extends ChangeNotifier {
     _setError(null);
 
     try {
-      // Fetch all clothing items and outfits
       final allItems = await _clothingRepository.getAll();
       final allOutfits = await _outfitRepository.getAll();
       
-      // Load items for each outfit (for outfit-based display)
       final Map<String, List<ClothingItem>> itemsMap = {};
       for (final outfit in allOutfits) {
         final List<ClothingItem> items = [];
@@ -87,47 +86,62 @@ class HomeViewModel extends ChangeNotifier {
         itemsMap[outfit.id] = items;
       }
       
-      List<String> targetSeasons = [];
-      List<String> targetColors = [];
+      List<String> targetSeasons = ['summer', 'spring'];
 
-      if (_weather != null) {
+      if (_weather != null && allItems.isNotEmpty) {
         final weatherStr = '${_weather!.condition}, ${_weather!.temperature}°C';
-        final jsonResponse = await _geminiService.getStructuredRecommendationCriteria(weatherStr);
-
-        // Extract json from potential markdown block
-        String? cleanJson = jsonResponse;
-        if (cleanJson != null) {
-          final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(cleanJson);
-          cleanJson = jsonMatch?.group(0);
+        
+        // Determine local target seasons 
+        if (_weather!.temperature >= 25) {
+          targetSeasons = ['summer'];
+        } else if (_weather!.temperature >= 15) {
+          targetSeasons = ['spring', 'fall', 'autumn'];
+        } else {
+          targetSeasons = ['winter', 'fall', 'autumn'];
         }
 
-        _aiDebugLog = 'Weather: $weatherStr\nAI Response: $jsonResponse\nExtracted JSON: $cleanJson';
+        // Cache key for today's weather
+        final dateKey = DateTime.now().toIso8601String().substring(0, 10);
+        final prefs = await SharedPreferences.getInstance();
+        final cacheKey = 'ai_recs_$dateKey';
+        String? jsonResponse = prefs.getString(cacheKey);
 
-        if (cleanJson != null) {
+        if (jsonResponse == null || jsonResponse.isEmpty) {
+          // Fetch from AI
+          jsonResponse = await _geminiService.getOutfitRecommendation(weatherStr, allItems);
+          if (jsonResponse != null && jsonResponse.isNotEmpty) {
+            await prefs.setString(cacheKey, jsonResponse);
+          }
+        }
+
+        _aiDebugLog = 'Weather: $weatherStr\\nCached/Fetched AI Response: $jsonResponse';
+
+        if (jsonResponse != null) {
           try {
-            final decoded = jsonDecode(cleanJson) as Map<String, dynamic>;
-            if (decoded['seasons'] != null) {
-              targetSeasons = List<String>.from(decoded['seasons']);
-            }
-            if (decoded['colors'] != null) {
-              targetColors = List<String>.from(decoded['colors']);
+            final decoded = jsonDecode(jsonResponse) as Map<String, dynamic>;
+            _stylingAdvice = decoded['advice'] as String?;
+            
+            final itemIds = List<String>.from(decoded['item_ids'] ?? []);
+            
+            _recommendedItems.clear();
+            for (final id in itemIds) {
+              final item = await _clothingRepository.getById(id);
+              if (item != null) _recommendedItems.add(item);
             }
           } catch (e) {
-            // ignore: avoid_print
-            print('Error parsing AI json: $e | raw: $cleanJson');
-            _aiDebugLog = '${_aiDebugLog}\nParse error: $e';
+            print('Error parsing AI json: $e | raw: $jsonResponse');
+            _aiDebugLog = '$_aiDebugLog\\nParse error: $e';
           }
         }
       }
 
-      if (targetSeasons.isEmpty) {
-        targetSeasons = ['summer', 'spring']; // Fallback
+      // If AI failed or empty, fallback to local filtering
+      if (_recommendedItems.isEmpty && allItems.isNotEmpty) {
+        _recommendedItems = _filterRecommendedItems(allItems, targetSeasons, []);
+        _stylingAdvice = "Welcome! Tap 'Get Styled' for personalized AI outfit recommendations based on the weather.";
       }
 
-      // 1. Filter INDIVIDUAL ITEMS by season and optionally color
-      _recommendedItems = _filterRecommendedItems(allItems, targetSeasons, targetColors);
-
-      // 2. Also sort outfits by season match for the outfit-based section
+      // 2. Sort outfits by season match for the outfit-based section
       List<Outfit> recommendedOutfits = allOutfits.toList();
       recommendedOutfits.sort((a, b) {
         final aItems = itemsMap[a.id] ?? [];
@@ -143,14 +157,6 @@ class HomeViewModel extends ChangeNotifier {
       final topOutfits = recommendedOutfits.take(3).toList();
       _recommendations = topOutfits;
       _recommendationItems = itemsMap;
-      
-      // Get AI styling advice based on top outfit and weather
-      if (_weather != null && allItems.isNotEmpty && _recommendedItems.isNotEmpty) {
-        final weatherStr = '${_weather!.condition}, ${_weather!.temperature}°C';
-        // Use first 3 recommended items for advice
-        final adviceItems = _recommendedItems.take(3).toList();
-        _stylingAdvice = await _geminiService.getStylingAdvice(adviceItems, weatherStr);
-      }
       
       notifyListeners();
     } catch (e) {

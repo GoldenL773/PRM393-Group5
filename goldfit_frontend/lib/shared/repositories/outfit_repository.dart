@@ -52,15 +52,15 @@ abstract class OutfitRepository {
   /// Assigns an outfit to a specific date in the calendar.
   /// 
   /// Inserts a record into the outfit_calendar table.
-  /// Enforces unique constraint - only one outfit can be assigned per date.
-  /// Throws DatabaseException if the date already has an outfit assigned or operation fails.
-  Future<void> assignToDate(String outfitId, DateTime date);
+  /// Enforces unique constraint - only one outfit can be assigned per date + time_slot.
+  /// Throws DatabaseException if the date+time_slot already has an outfit assigned or operation fails.
+  Future<void> assignToDate(String outfitId, DateTime date, String timeSlot, {String? eventName, String? startTime});
 
-  /// Removes the outfit assignment from a specific date.
+  /// Removes the outfit assignment from a specific date and time slot.
   /// 
   /// Deletes the corresponding record from the outfit_calendar table.
   /// Throws DatabaseException if the operation fails.
-  Future<void> unassignFromDate(DateTime date);
+  Future<void> unassignFromDate(DateTime date, String timeSlot);
 
   /// Retrieves the outfit assigned to a specific date.
   /// 

@@ -39,6 +39,7 @@ class AuthViewModel extends ChangeNotifier {
       return false;
     } catch (e) {
       _setError(e.toString());
+      _setLoading(false);
       return false;
     }
   }
@@ -58,6 +59,7 @@ class AuthViewModel extends ChangeNotifier {
       return false;
     } catch (e) {
       _setError(e.toString());
+      _setLoading(false);
       return false;
     }
   }
@@ -77,6 +79,7 @@ class AuthViewModel extends ChangeNotifier {
       return false;
     } catch (e) {
       _setError(e.toString());
+      _setLoading(false);
       return false;
     }
   }
@@ -109,6 +112,7 @@ class AuthViewModel extends ChangeNotifier {
       return false;
     } catch (e) {
       _setError(e.toString());
+      _setLoading(false);
       return false;
     }
   }

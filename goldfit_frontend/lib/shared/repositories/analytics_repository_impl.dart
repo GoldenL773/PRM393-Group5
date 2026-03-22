@@ -314,14 +314,20 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
     return ClothingItem(
       id: map[DatabaseConstants.columnId] as String,
       imageUrl: map[DatabaseConstants.columnImagePath] as String,
-      type: ClothingType.values
-          .firstWhere((e) => e.name == map[DatabaseConstants.columnType]),
+      type: ClothingType.values.firstWhere(
+        (e) => e.name == map[DatabaseConstants.columnType],
+        orElse: () => ClothingType.tops,
+      ),
       color: map[DatabaseConstants.columnColor] as String,
       seasons: (jsonDecode(map[DatabaseConstants.columnSeasons]) as List<dynamic>)
-          .map((s) => Season.values.firstWhere((e) => e.name == s))
+          .map((s) => Season.values.firstWhere(
+            (e) => e.name == s,
+            orElse: () => Season.spring,
+          ))
           .toList(),
       price: map[DatabaseConstants.columnPrice] as double?,
       usageCount: map[DatabaseConstants.columnUsageCount] as int,
+      isFavorite: (map[DatabaseConstants.columnIsFavorite] as int?) == 1,
       addedDate: DateTime.fromMillisecondsSinceEpoch(
           map[DatabaseConstants.columnCreatedAt] as int),
     );

@@ -60,6 +60,13 @@ class AppState extends ChangeNotifier {
   DateTime _selectedDate = DateTime.now();
 
   // ============================================================================
+  // Global Navigation State
+  // ============================================================================
+
+  /// Current active tab in AppShell
+  int _currentTab = 0;
+
+  // ============================================================================
   // Constructor
   // ============================================================================
 
@@ -152,6 +159,9 @@ class AppState extends ChangeNotifier {
 
   /// Returns the currently selected date.
   DateTime get selectedDate => _selectedDate;
+
+  /// Returns the current active tab index.
+  int get currentTab => _currentTab;
 
   // ============================================================================
   // Data Provider Access
@@ -321,6 +331,12 @@ class AppState extends ChangeNotifier {
   /// Sets the selected date in the planner.
   void selectDate(DateTime date) {
     _selectedDate = date;
+    notifyListeners();
+  }
+
+  /// Sets the active tab index.
+  void setTab(int index) {
+    _currentTab = index;
     notifyListeners();
   }
 

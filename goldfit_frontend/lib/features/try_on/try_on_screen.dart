@@ -208,14 +208,44 @@ class _TryOnScreenState extends State<TryOnScreen> {
           TextButton.icon(
             icon: const Icon(Icons.compare_arrows, color: GoldFitTheme.gold600),
             label: const Text('Compare', style: TextStyle(color: GoldFitTheme.gold600, fontWeight: FontWeight.bold)),
-            onPressed: () {
+            onPressed: () async {
               final appState = Provider.of<AppState>(context, listen: false);
               String? comparePath;
+              
               if (appState.tryOnMode == TryOnMode.realistic) {
-                comparePath = _transparentRealisticImagePath ?? _realisticImagePath ?? _transparentBasePhotoPath ?? _basePhotoPath;
+                comparePath = _realisticImagePath ?? _basePhotoPath;
               } else {
-                comparePath = _transparentBasePhotoPath ?? _basePhotoPath;
+                // Quick Try mode - Capture composite screenshot
+                try {
+                  final boundary = _tryOnGlobalKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+                  if (boundary != null) {
+                    final image = await boundary.toImage(pixelRatio: 2.0);
+                    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+                    if (byteData != null) {
+                      comparePath = await _imageStorageManager.saveTempImageFromBytes(byteData.buffer.asUint8List());
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('Compare screenshot failed: $e');
+                }
+                
+                // If screenshot failed, use base photo
+                comparePath ??= _basePhotoPath;
               }
+
+              // Final safety check & Convert to absolute path
+              if (comparePath != null) {
+                final absolutePath = await _imageStorageManager.getImagePath(comparePath);
+                if (await File(absolutePath).exists()) {
+                  comparePath = absolutePath;
+                } else if (_basePhotoPath != null) {
+                  comparePath = await _imageStorageManager.getImagePath(_basePhotoPath!);
+                }
+              } else if (_basePhotoPath != null) {
+                comparePath = await _imageStorageManager.getImagePath(_basePhotoPath!);
+              }
+
+              if (!mounted) return;
 
               Navigator.push(
                 context, 
@@ -349,20 +379,23 @@ class _TryOnScreenState extends State<TryOnScreen> {
                 ),
                 child: AspectRatio(
                   aspectRatio: targetAspectRatio,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // SCENE BACKGROUND
-                      if (_selectedSceneUrl != null && _selectedSceneUrl!.isNotEmpty)
-                        Image.asset(
-                          _selectedSceneUrl!,
-                          fit: BoxFit.cover,
-                        ),
-                      // Core try on mode
-                      appState.tryOnMode == TryOnMode.quick
-                          ? _buildQuickTryMode(context, appState)
-                          : _buildRealisticMode(context, appState),
-                    ],
+                  child: RepaintBoundary(
+                    key: _tryOnGlobalKey,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // SCENE BACKGROUND
+                        if (_selectedSceneUrl != null && _selectedSceneUrl!.isNotEmpty)
+                          Image.asset(
+                            _selectedSceneUrl!,
+                            fit: BoxFit.cover,
+                          ),
+                        // Core try on mode
+                        appState.tryOnMode == TryOnMode.quick
+                            ? _buildQuickTryMode(context, appState)
+                            : _buildRealisticMode(context, appState),
+                      ],
+                    ),
                   ),
                 ),
               ),

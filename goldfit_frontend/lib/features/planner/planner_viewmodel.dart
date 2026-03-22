@@ -144,6 +144,41 @@ class PlannerViewModel extends ChangeNotifier {
     }
   }
 
+  /// Creates a new outfit from image paths and assigns it to a date/slot
+  Future<void> createAndAssignOutfit({
+    required String name,
+    required String resultImagePath,
+    String? modelImagePath,
+    required DateTime date,
+    required String timeSlot,
+    String? eventName,
+    String? startTime,
+  }) async {
+    debugPrint('DEBUG: Calling createAndAssignOutfit for $name at $timeSlot');
+    try {
+      final outfitId = 'outfit_${DateTime.now().millisecondsSinceEpoch}';
+      final newOutfit = Outfit(
+        id: outfitId,
+        name: name,
+        itemIds: [], // Composites may not have item links in this context
+        createdDate: DateTime.now(),
+        modelImagePath: modelImagePath ?? resultImagePath,
+        resultImagePath: resultImagePath,
+      );
+
+      await _outfitRepository.create(newOutfit);
+      
+      // Update local state if it's not already there
+      if (!_outfits.any((o) => o.id == outfitId)) {
+        _outfits.insert(0, newOutfit);
+      }
+      
+      await assignOutfit(outfitId, date, timeSlot, eventName: eventName, startTime: startTime);
+    } catch (e) {
+      _setError('Failed to create and assign outfit: $e');
+    }
+  }
+
   /// Removes the outfit assignment from a specific date.
   /// 
   /// Deletes the calendar assignment from the repository and updates the local state.

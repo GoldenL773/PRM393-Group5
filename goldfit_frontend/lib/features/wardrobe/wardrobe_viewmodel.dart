@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/models/filter_state.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository.dart';
+import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
 import 'package:goldfit_frontend/shared/services/gemini_service.dart';
 
 /// ViewModel for the Wardrobe screen that manages UI state and business logic.
@@ -23,18 +24,56 @@ class WardrobeViewModel extends ChangeNotifier {
 
   WardrobeViewModel(this._clothingRepository);
 
-  /// Loads all clothing items from the repository.
-  Future<void> loadItems() async {
+  /// Loads all clothing items and syncs usage counts from planner.
+  Future<void> loadItems({OutfitRepository? outfitRepo}) async {
     _setLoading(true);
     _setError(null);
 
     try {
+      if (outfitRepo != null) {
+        await syncUsageCountsWithPlanner(outfitRepo);
+      }
       _items = await _clothingRepository.getAll();
       notifyListeners();
     } catch (e) {
       _setError('Failed to load wardrobe items: $e');
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /// Syncs clothing usage counts by scanning the Planner history.
+  /// Logic: Usage Count = Total days in Planner containing this Item ID up to Today.
+  Future<void> syncUsageCountsWithPlanner(OutfitRepository outfitRepository) async {
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      
+      // 1. Get all assigned outfits from the past until today
+      final pastAssignments = await outfitRepository.getByDateRange(
+        DateTime(2020, 1, 1), // Realistic past starting point
+        today,
+      );
+
+      // 2. Aggregate counts per Item ID
+      final Map<String, int> usageMap = {};
+      for (final outfit in pastAssignments) {
+        for (final itemId in outfit.itemIds) {
+          usageMap[itemId] = (usageMap[itemId] ?? 0) + 1;
+        }
+      }
+
+      // 3. Update items in DB if count changed
+      final allItems = await _clothingRepository.getAll();
+      for (var item in allItems) {
+        final actualUsage = usageMap[item.id] ?? 0;
+        if (item.usageCount != actualUsage) {
+          await _clothingRepository.update(item.copyWith(usageCount: actualUsage));
+        }
+      }
+    } catch (e) {
+      debugPrint('Usage sync error: $e');
+      // Non-critical error, don't block the UI
     }
   }
 

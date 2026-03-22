@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 
-/// A chip widget for displaying active filters with a remove button.
+/// A chip widgets for displaying active filters with a remove button.
 /// 
-/// This widget is used in the wardrobe screen to show active filters
+/// This widgets is used in the wardrobe screen to show active filters
 /// and allow users to remove them. It displays the filter label with
 /// a remove button (X icon) and is styled with a yellow border and background.
 /// 

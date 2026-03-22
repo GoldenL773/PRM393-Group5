@@ -30,7 +30,7 @@ void main() {
       // Verify app bar title
       expect(find.text('Planner'), findsOneWidget);
 
-      // Verify PlannerScreen widget is rendered
+      // Verify PlannerScreen widgets is rendered
       expect(find.byType(PlannerScreen), findsOneWidget);
       
       // Verify scaffold is present
@@ -53,7 +53,7 @@ void main() {
       // Verify app bar title
       expect(find.text('Planner'), findsOneWidget);
 
-      // Verify PlannerScreen widget is rendered
+      // Verify PlannerScreen widgets is rendered
       expect(find.byType(PlannerScreen), findsOneWidget);
       
       // Verify scaffold is present

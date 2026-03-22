@@ -354,7 +354,7 @@ class ItemDetailScreen extends StatelessWidget {
     );
   }
 
-  /// Builds the clothing item image widget
+  /// Builds the clothing item image widgets
   Widget _buildItemImage(ClothingItem item) {
     if (item.imageUrl.startsWith('http')) {
        return Image.network(

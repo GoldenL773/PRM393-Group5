@@ -194,10 +194,10 @@ void main() {
       );
     }
 
-    testWidgets('displays weather widget on load', (WidgetTester tester) async {
+    testWidgets('displays weather widgets on load', (WidgetTester tester) async {
       await tester.pumpWidget(createTestWidget());
 
-      // Wait for the widget to build
+      // Wait for the widgets to build
       await tester.pumpAndSettle();
 
       // Verify weather information is displayed

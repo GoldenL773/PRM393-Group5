@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 
-/// A tab widget for displaying and selecting clothing categories.
+/// A tab widgets for displaying and selecting clothing categories.
 /// 
-/// This widget is used in the wardrobe screen to filter items by category.
+/// This widgets is used in the wardrobe screen to filter items by category.
 /// It displays a category label with active/inactive styling and applies
 /// the primary gold/yellow color when active.
 /// 

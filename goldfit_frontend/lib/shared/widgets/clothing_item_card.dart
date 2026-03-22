@@ -3,9 +3,9 @@ import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 
-/// A card widget that displays a clothing item thumbnail with border and shadow.
+/// A card widgets that displays a clothing item thumbnail with border and shadow.
 /// 
-/// This widget is used in grid views to show clothing items from the wardrobe.
+/// This widgets is used in grid views to show clothing items from the wardrobe.
 /// It displays the item's image with a subtle border and shadow effect, and
 /// handles tap gestures to navigate to the item detail screen.
 /// 
@@ -77,7 +77,7 @@ class ClothingItemCard extends StatelessWidget {
     );
   }
 
-  /// Builds the image widget for the clothing item.
+  /// Builds the image widgets for the clothing item.
   /// 
   /// If the imageUrl starts with 'assets/' or 'images/', it uses LocalImageWidget.
   /// Otherwise, it displays a colored placeholder with an icon.

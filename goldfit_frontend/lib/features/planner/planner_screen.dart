@@ -9,7 +9,7 @@ import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 import 'package:add_2_calendar/add_2_calendar.dart';
 
 /// Planner screen displaying calendar view for outfit planning
-/// Shows week/month toggle, calendar widget, and outfit assignment interface
+/// Shows week/month toggle, calendar widgets, and outfit assignment interface
 /// 
 /// Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 14.3, 14.4
 class PlannerScreen extends StatefulWidget {
@@ -689,7 +689,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
   }
 }
 
-/// View toggle button widget for Week/Month selection
+/// View toggle button widgets for Week/Month selection
 class _ViewToggleButton extends StatelessWidget {
   final String label;
   final bool isActive;

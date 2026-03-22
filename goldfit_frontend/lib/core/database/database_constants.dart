@@ -6,7 +6,7 @@ library;
 class DatabaseConstants {
   // Database configuration
   static const String databaseName = 'goldfit.db';
-  static const int databaseVersion = 4;
+  static const int databaseVersion = 6;
 
   // Table names
   static const String tableClothingItems = 'clothing_items';
@@ -93,6 +93,34 @@ class DatabaseConstants {
   static const String indexClothingTagsItem = 'idx_clothing_tags_item';
   static const String indexClothingTagsTag = 'idx_clothing_tags_tag';
 
+  // Add to existing DatabaseConstants class:
+
+// Table names
+  static const String tableUsers = 'users';
+  static const String tableUserSessions = 'user_sessions';
+
+// users table columns
+  static const String columnUserId = 'user_id';
+  static const String columnEmail = 'email';
+  static const String columnDisplayName = 'display_name';
+  static const String columnPhotoUrl = 'photo_url';
+  static const String columnAuthProvider = 'auth_provider';
+  static const String columnLastLoginAt = 'last_login_at';
+  static const String columnEmailVerified = 'email_verified';
+  static const String columnPasswordHash = 'password_hash';
+
+// user_sessions table columns
+  static const String columnSessionId = 'session_id';
+  static const String columnSessionToken = 'session_token';
+  static const String columnExpiresAt = 'expires_at';
+  static const String columnIsRevoked = 'is_revoked';
+
+// Index names
+  static const String indexUsersEmail = 'idx_users_email';
+  static const String indexUsersProvider = 'idx_users_provider';
+  static const String indexSessionsUser = 'idx_sessions_user';
+  static const String indexSessionsToken = 'idx_sessions_token';
+  static const String indexSessionsExpiry = 'idx_sessions_expiry';
   // Prevent instantiation
   DatabaseConstants._();
 }

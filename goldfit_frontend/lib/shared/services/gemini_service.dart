@@ -340,6 +340,64 @@ Return ONLY valid JSON without any markdown block formatting (no ` ```json ` tag
       return null;
     }
   }
+
+  /// Get multiple styling recommendations based on a specific vibe/event and the user's wardrobe
+  Future<String?> getStyleRecommendations(String contextStr, List<ClothingItem> wardrobe) async {
+    try {
+      if (_textApiKey == 'PLACEHOLDER_GEMINI_KEY' || wardrobe.isEmpty) {
+        return null; 
+      }
+
+      final conciseWardrobe = wardrobe.map((item) {
+        return {
+          "id": item.id,
+          "type": item.type.name,
+          "color": item.color,
+          "seasons": item.seasons.map((s) => s.toString().split('.').last).toList()
+        };
+      }).toList();
+
+      final wardrobeJson = jsonEncode(conciseWardrobe);
+
+      final prompt = '''
+You are a professional fashion stylist. The context for the styling session is: "$contextStr".
+The user has the following clothing items available in their wardrobe:
+$wardrobeJson
+
+Your task is to create up to 3 distinct, cohesive outfit recommendations from ONLY these provided items that perfectly match the context (weather, vibe, and/or event).
+For each outfit, choose at most 1 item from each necessary category (e.g., 1 Top, 1 Bottom, 1 Outerwear if needed, 1 pair of Shoes).
+DO NOT invent items. You must ONLY use the exact IDs provided in the array.
+
+Return a JSON array of objects, where each object has:
+- "name": A catchy, aesthetic name for the outfit.
+- "advice": A short snippet (max 2 sentences) explaining why this outfit is a great choice.
+- "item_ids": An array containing exactly the string "id" of the items you selected.
+
+Return ONLY valid JSON without any markdown block formatting (no ` ```json ` tags).
+      ''';
+
+      final content = [Content.text(prompt)];
+      final response = await _textModel.generateContent(content);
+      String result = response.text?.trim() ?? '';
+      
+      if (result.startsWith('```json')) {
+        result = result.replaceAll('```json', '').replaceAll('```', '').trim();
+      } else if (result.startsWith('```')) {
+         result = result.replaceAll('```', '').trim();
+      }
+
+      ErrorLogger.log(
+        'AI Style Recommendations Request:\nContext: $contextStr\nResponse: $result',
+        severity: LogSeverity.info,
+        context: 'GeminiService.getStyleRecommendations',
+      );
+      
+      return result;
+    } catch (e) {
+      print('Error getting style recommendations: $e');
+      return null;
+    }
+  }
   Future<String> getStylingAdvice(List<ClothingItem> items, String weather) async {
     try {
       if (items.isEmpty) {

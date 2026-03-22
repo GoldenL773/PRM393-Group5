@@ -289,29 +289,47 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildGetStyledButton(BuildContext context) {
     final navigationManager = Provider.of<NavigationManager>(context, listen: false);
     
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () {
-          navigationManager.navigateToStyling(context);
-        },
-        style: ElevatedButton.styleFrom(
-          shadowColor: GoldFitTheme.primary.withOpacity(0.3),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        gradient: const LinearGradient(
+          colors: [GoldFitTheme.primary, GoldFitTheme.yellow200],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.auto_awesome, size: 24), // Icon to ra một tẹo
-            SizedBox(width: 12),
-            Text(
-              'Get Styled',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
+        boxShadow: [
+          BoxShadow(
+            color: GoldFitTheme.primary.withOpacity(0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(30),
+          onTap: () => navigationManager.navigateToStyling(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.auto_awesome, size: 24, color: Colors.white),
+                SizedBox(width: 12),
+                Text(
+                  'Get Styled',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -412,8 +430,8 @@ class _HomeScreenState extends State<HomeScreen> {
         const Text(
           'Recommended for Today',
           style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
             color: GoldFitTheme.textDark,
             letterSpacing: -0.5,
           ),
@@ -425,15 +443,16 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(
             height: 140,
             child: ListView.separated(
+              clipBehavior: Clip.none,
               scrollDirection: Axis.horizontal,
               itemCount: recommendedItems.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, __) => const SizedBox(width: 16),
               itemBuilder: (context, index) {
                 return _buildRecommendedItemCard(context, recommendedItems[index], navigationManager);
               },
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
         ],
         
         // Outfit section title
@@ -441,9 +460,10 @@ class _HomeScreenState extends State<HomeScreen> {
           const Text(
             'Complete Outfits',
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
               color: GoldFitTheme.textDark,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 16),
@@ -487,20 +507,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/try-on'),
       child: Container(
-        width: 110,
+        width: 120,
         decoration: BoxDecoration(
           color: GoldFitTheme.surfaceLight,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.07),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: GoldFitTheme.gold600.withOpacity(0.12),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           child: Stack(
             fit: StackFit.expand,
             children: [

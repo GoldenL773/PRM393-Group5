@@ -29,17 +29,13 @@ class OutfitCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: GoldFitTheme.surfaceLight,
-          borderRadius: BorderRadius.circular(32),
-          border: Border.all(
-            color: GoldFitTheme.yellow200.withOpacity(0.1), // Ghost border
-            width: 1,
-          ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: GoldFitTheme.gold600.withOpacity(0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -58,9 +54,10 @@ class OutfitCard extends StatelessWidget {
                   Text(
                     outfit.name,
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
                       color: GoldFitTheme.textDark,
+                      letterSpacing: -0.3,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -83,19 +80,16 @@ class OutfitCard extends StatelessWidget {
   /// Displays items in a horizontal scrollable row with small thumbnails.
   Widget _buildItemsPreview() {
     return Container(
-      height: 120,
-      decoration: BoxDecoration(
-        color: GoldFitTheme.backgroundDark,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-        ),
+      height: 140,
+      padding: const EdgeInsets.only(top: 12, bottom: 4),
+      decoration: const BoxDecoration(
+        color: Colors.transparent,
       ),
       child: items.isEmpty
           ? const Center(
               child: Icon(
                 Icons.checkroom_outlined,
-                size: 48,
+                size: 40,
                 color: GoldFitTheme.textLight,
               ),
             )
@@ -105,9 +99,9 @@ class OutfitCard extends StatelessWidget {
               itemCount: items.length,
               itemBuilder: (context, index) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 6.0),
                   child: AspectRatio(
-                    aspectRatio: 0.8,
+                    aspectRatio: 0.85,
                     child: _buildItemThumbnail(items[index]),
                   ),
                 );
@@ -120,15 +114,11 @@ class OutfitCard extends StatelessWidget {
   Widget _buildItemThumbnail(ClothingItem item) {
     return Container(
       decoration: BoxDecoration(
-        color: GoldFitTheme.surfaceLight,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFFF1F5F9),
-          width: 1,
-        ),
+        color: GoldFitTheme.backgroundDark,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         child: _buildItemImage(item),
       ),
     );
@@ -165,21 +155,18 @@ class OutfitCard extends StatelessWidget {
   /// Builds the vibe label chip.
   Widget _buildVibeLabel() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: GoldFitTheme.yellow100,
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(
-          color: GoldFitTheme.yellow200.withOpacity(0.2),
-          width: 0.5,
-        ),
+        color: GoldFitTheme.yellow200.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
         outfit.vibe!,
         style: const TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           color: GoldFitTheme.gold600,
+          letterSpacing: 0.2,
         ),
       ),
     );

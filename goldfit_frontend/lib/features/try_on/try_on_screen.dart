@@ -16,6 +16,36 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:goldfit_frontend/features/wardrobe/wardrobe_viewmodel.dart';
 import 'package:goldfit_frontend/features/favorites/favorites_viewmodel.dart';
 import 'package:uuid/uuid.dart';
+import 'package:image/image.dart' as img;
+import 'package:flutter/foundation.dart';
+
+Uint8List _trimImage(Uint8List bytes) {
+  final image = img.decodeImage(bytes);
+  if (image == null) return bytes;
+  
+  try {
+     int minX = image.width, minY = image.height, maxX = 0, maxY = 0;
+     bool found = false;
+     for (int y = 0; y < image.height; y++) {
+       for (int x = 0; x < image.width; x++) {
+         final pixel = image.getPixel(x, y);
+         if (pixel.a > 10) {
+           if (x < minX) minX = x;
+           if (x > maxX) maxX = x;
+           if (y < minY) minY = y;
+           if (y > maxY) maxY = y;
+           found = true;
+         }
+       }
+     }
+     if (!found) return bytes;
+     
+     final cropped = img.copyCrop(image, x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1);
+     return Uint8List.fromList(img.encodePng(cropped));
+  } catch (e) {
+     return bytes; // fallback
+  }
+}
 
 /// Try-On screen for virtual try-on with Quick Try and Realistic Fitting modes
 /// Displays base photo, mode toggle, clothing selector, and save outfit button
@@ -45,8 +75,14 @@ class _TryOnScreenState extends State<TryOnScreen> {
   final Set<String> _processingItems = {}; // To prevent concurrent processing of the same item
   final ImageStorageManager _imageStorageManager = ImageStorageManager();
   
-  // Track manual offsets for clothing items in Quick Try mode
+  // Track manual offsets, scales, and rotations for clothing items in Quick Try mode
   final Map<String, Offset> _clothingOffsets = {};
+  final Map<String, double> _clothingScales = {};
+  final Map<String, double> _clothingRotations = {};
+  
+  // Temporary state for gestures
+  final Map<String, double> _initialScales = {};
+  final Map<String, double> _initialRotations = {};
   
   static const String _basePhotoPrefKey = 'try_on_base_photo_path';
   // ------------------------------------------
@@ -964,8 +1000,10 @@ class _TryOnScreenState extends State<TryOnScreen> {
             final cleanedBase64 = await _geminiService.removeBackground(absolutePath);
             if (cleanedBase64 != null) {
               final bytes = base64Decode(cleanedBase64);
+              final trimmedBytes = await compute(_trimImage, bytes);
+              
               // Save persistently by item ID → always findable by ID, never lost on restart
-              final persistentAbsolutePath = await _imageStorageManager.saveCleanedGarment(item.id, bytes);
+              final persistentAbsolutePath = await _imageStorageManager.saveCleanedGarment(item.id, trimmedBytes);
               _cleanedGarmentsCache[item.id] = persistentAbsolutePath;
               
               // Also store relative path in DB for cross-device compatibility
@@ -1079,25 +1117,37 @@ class _TryOnScreenState extends State<TryOnScreen> {
       width: itemWidth,
       height: itemHeight,
       child: GestureDetector(
-        onPanUpdate: (details) {
+        onScaleStart: (details) {
+          _initialScales[item.id] = _clothingScales[item.id] ?? 1.0;
+          _initialRotations[item.id] = _clothingRotations[item.id] ?? 0.0;
+        },
+        onScaleUpdate: (details) {
           setState(() {
-            _clothingOffsets[item.id] = (_clothingOffsets[item.id] ?? Offset.zero) + details.delta;
+            _clothingOffsets[item.id] = (_clothingOffsets[item.id] ?? Offset.zero) + details.focalPointDelta;
+            _clothingScales[item.id] = (_initialScales[item.id] ?? 1.0) * details.scale;
+            _clothingRotations[item.id] = (_initialRotations[item.id] ?? 0.0) + details.rotation;
           });
         },
-        child: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(2, 4),
+        child: Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..scale(_clothingScales[item.id] ?? 1.0)
+            ..rotateZ(_clothingRotations[item.id] ?? 0.0),
+          child: Container(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(2, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Opacity(
-          opacity: 0.95, // Increased opacity for better realism on standardized model
-          child: _buildClothingImage(item, width: itemWidth, height: itemHeight),
-        ),
+            child: Opacity(
+              opacity: 0.95, // Increased opacity for better realism on standardized model
+              child: _buildClothingImage(item, width: itemWidth, height: itemHeight),
+            ),
+          ),
       ),
     ),
   );

@@ -33,6 +33,9 @@ void main() {
         totalValue: 1250.50,
         mostWorn: mostWorn,
         leastWorn: leastWorn,
+        mostValueForMoney: [],
+        mostWasteful: [],
+        categoryValueDistribution: {},
       );
 
       expect(analytics.totalItems, 25);
@@ -49,6 +52,9 @@ void main() {
         totalValue: 1000.0,
         mostWorn: [createTestItem('item1', 10)],
         leastWorn: [createTestItem('item2', 0)],
+        mostValueForMoney: [],
+        mostWasteful: [],
+        categoryValueDistribution: {},
       );
 
       final updated = original.copyWith(
@@ -71,6 +77,9 @@ void main() {
         totalValue: 750.25,
         mostWorn: mostWorn,
         leastWorn: leastWorn,
+        mostValueForMoney: [],
+        mostWasteful: [],
+        categoryValueDistribution: {},
       );
 
       final json = analytics.toJson();
@@ -116,6 +125,9 @@ void main() {
           createTestItem('least1', 1),
           createTestItem('least2', 0),
         ],
+        mostValueForMoney: [],
+        mostWasteful: [],
+        categoryValueDistribution: {'tops': 500.0},
       );
 
       final json = original.toJson();
@@ -152,6 +164,9 @@ void main() {
         totalValue: 1000.0,
         mostWorn: mostWorn,
         leastWorn: leastWorn,
+        mostValueForMoney: [],
+        mostWasteful: [],
+        categoryValueDistribution: {},
       );
 
       expect(analytics1 == analytics2, true);
@@ -185,6 +200,9 @@ void main() {
         totalValue: 1000.0,
         mostWorn: [createTestItem('item1', 10)],
         leastWorn: [createTestItem('item2', 0)],
+        mostValueForMoney: [],
+        mostWasteful: [],
+        categoryValueDistribution: {},
       );
 
       final str = analytics.toString();
@@ -199,6 +217,9 @@ void main() {
         totalValue: 0.0,
         mostWorn: [],
         leastWorn: [],
+        mostValueForMoney: [],
+        mostWasteful: [],
+        categoryValueDistribution: {},
       );
 
       expect(analytics.mostWorn.length, 0);

@@ -315,7 +315,7 @@ class _TryOnCompareScreenState extends State<TryOnCompareScreen> {
         name: '${optionName.replaceAll('OPTION ', '')} Style',
         resultImagePath: path,
         date: DateTime.now(),
-        timeSlot: selectedSlot,
+        timeSlot: selectedSlot.toLowerCase(),
         eventName: 'New Look Selection',
       );
 

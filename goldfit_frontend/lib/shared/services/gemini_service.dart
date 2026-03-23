@@ -201,7 +201,7 @@ class GeminiService {
         },
       };
 
-      return await _generateImageViaRest('gemini-3.0-flash-image', requestBody);
+      return await _generateImageViaRest('gemini-2.5-flash-image', requestBody);
     } catch (e) {
       print('VTO Error: $e');
       return null;
@@ -600,7 +600,8 @@ Be encouraging and professional.
       final alphaBytes = await alphaFile.readAsBytes();
       final betaBytes = await betaFile.readAsBytes();
 
-      final prompt = '''
+      final prompt =
+          '''
 You are an expert fashion stylist. I am choosing between two outfits: Option Alpha and Option Beta.
 CONTEXT (Event & Weather): "$eventContext"
 

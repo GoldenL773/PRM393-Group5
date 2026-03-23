@@ -28,6 +28,9 @@ class MockAnalyticsRepository implements AnalyticsRepository {
     totalValue: 0,
     mostWorn: [],
     leastWorn: [],
+    mostValueForMoney: [],
+    mostWasteful: [],
+    categoryValueDistribution: {},
   );
   @override Future<void> recordUsage(String outfitId, DateTime date) async {}
   @override Future<List<ClothingItem>> getMostWorn(int limit) async => [];

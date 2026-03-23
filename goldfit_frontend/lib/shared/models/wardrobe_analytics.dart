@@ -6,12 +6,18 @@ class WardrobeAnalytics {
   final double totalValue;
   final List<ClothingItem> mostWorn;
   final List<ClothingItem> leastWorn;
+  final List<ClothingItem> mostValueForMoney;
+  final List<ClothingItem> mostWasteful;
+  final Map<String, double> categoryValueDistribution;
 
   WardrobeAnalytics({
     required this.totalItems,
     required this.totalValue,
     required this.mostWorn,
     required this.leastWorn,
+    this.mostValueForMoney = const [],
+    this.mostWasteful = const [],
+    this.categoryValueDistribution = const {},
   });
 
   /// Create a copy with modified fields
@@ -20,12 +26,18 @@ class WardrobeAnalytics {
     double? totalValue,
     List<ClothingItem>? mostWorn,
     List<ClothingItem>? leastWorn,
+    List<ClothingItem>? mostValueForMoney,
+    List<ClothingItem>? mostWasteful,
+    Map<String, double>? categoryValueDistribution,
   }) {
     return WardrobeAnalytics(
       totalItems: totalItems ?? this.totalItems,
       totalValue: totalValue ?? this.totalValue,
       mostWorn: mostWorn ?? this.mostWorn,
       leastWorn: leastWorn ?? this.leastWorn,
+      mostValueForMoney: mostValueForMoney ?? this.mostValueForMoney,
+      mostWasteful: mostWasteful ?? this.mostWasteful,
+      categoryValueDistribution: categoryValueDistribution ?? this.categoryValueDistribution,
     );
   }
 
@@ -36,20 +48,31 @@ class WardrobeAnalytics {
       'totalValue': totalValue,
       'mostWorn': mostWorn.map((item) => item.toJson()).toList(),
       'leastWorn': leastWorn.map((item) => item.toJson()).toList(),
+      'mostValueForMoney': mostValueForMoney.map((item) => item.toJson()).toList(),
+      'mostWasteful': mostWasteful.map((item) => item.toJson()).toList(),
+      'categoryValueDistribution': categoryValueDistribution,
     };
   }
 
   /// Create from JSON
   factory WardrobeAnalytics.fromJson(Map<String, dynamic> json) {
     return WardrobeAnalytics(
-      totalItems: json['totalItems'] as int,
-      totalValue: (json['totalValue'] as num).toDouble(),
-      mostWorn: (json['mostWorn'] as List<dynamic>)
-          .map((item) => ClothingItem.fromJson(item as Map<String, dynamic>))
-          .toList(),
-      leastWorn: (json['leastWorn'] as List<dynamic>)
-          .map((item) => ClothingItem.fromJson(item as Map<String, dynamic>))
-          .toList(),
+      totalItems: json['totalItems'] as int? ?? 0,
+      totalValue: (json['totalValue'] as num?)?.toDouble() ?? 0.0,
+      mostWorn: (json['mostWorn'] as List<dynamic>?)
+          ?.map((item) => ClothingItem.fromJson(item as Map<String, dynamic>))
+          .toList() ?? [],
+      leastWorn: (json['leastWorn'] as List<dynamic>?)
+          ?.map((item) => ClothingItem.fromJson(item as Map<String, dynamic>))
+          .toList() ?? [],
+      mostValueForMoney: (json['mostValueForMoney'] as List<dynamic>?)
+          ?.map((item) => ClothingItem.fromJson(item as Map<String, dynamic>))
+          .toList() ?? [],
+      mostWasteful: (json['mostWasteful'] as List<dynamic>?)
+          ?.map((item) => ClothingItem.fromJson(item as Map<String, dynamic>))
+          .toList() ?? [],
+      categoryValueDistribution: (json['categoryValueDistribution'] as Map<String, dynamic>?)
+          ?.map((k, v) => MapEntry(k, (v as num).toDouble())) ?? {},
     );
   }
 

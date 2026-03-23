@@ -44,20 +44,51 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
         getTotalValue(),
         getMostWorn(5),
         getLeastWorn(5),
+        _getMostValueForMoney(3),
+        _getMostWasteful(3),
+        _getCategoryValueDistribution(),
       ]);
 
-      final analytics = WardrobeAnalytics(
-        totalItems: results[0] as int,
-        totalValue: results[1] as double,
-        mostWorn: results[2] as List<ClothingItem>,
-        leastWorn: results[3] as List<ClothingItem>,
-      );
+      try {
+        final analytics = WardrobeAnalytics(
+          totalItems: (results[0] as int?) ?? 0,
+          totalValue: (results[1] as num?)?.toDouble() ?? 0.0,
+          mostWorn: results[2] is List<ClothingItem> 
+              ? results[2] as List<ClothingItem> 
+              : [],
+          leastWorn: results[3] is List<ClothingItem> 
+              ? results[3] as List<ClothingItem> 
+              : [],
+          mostValueForMoney: results[4] is List<ClothingItem>
+              ? results[4] as List<ClothingItem>
+              : [],
+          mostWasteful: results[5] is List<ClothingItem>
+              ? results[5] as List<ClothingItem>
+              : [],
+          categoryValueDistribution: results[6] is Map<String, double>
+              ? results[6] as Map<String, double>
+              : (results[6] as Map<dynamic, dynamic>?)?.map(
+                  (k, v) => MapEntry(k.toString(), (v as num?)?.toDouble() ?? 0.0)) ?? {},
+        );
 
-      // Update cache
-      _cachedAnalytics = analytics;
-      _cacheTimestamp = DateTime.now();
+        // Update cache
+        _cachedAnalytics = analytics;
+        _cacheTimestamp = DateTime.now();
 
-      return analytics;
+        return analytics;
+      } catch (e, stackTrace) {
+        ErrorLogger.log('Failed to fetch analytics: $e', context: 'AnalyticsRepository.getAnalytics', error: e, stackTrace: stackTrace);
+        
+        return WardrobeAnalytics(
+          totalItems: 0,
+          totalValue: 0.0,
+          mostWorn: [],
+          leastWorn: [],
+          mostValueForMoney: [],
+          mostWasteful: [],
+          categoryValueDistribution: {},
+        );
+      }
     } catch (e, stackTrace) {
       if (e is db_exceptions.DatabaseException) rethrow;
       ErrorLogger.log('Failed to get analytics: $e', context: 'AnalyticsRepository.analytics_query', error: e, stackTrace: stackTrace);
@@ -142,7 +173,7 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
       // Query clothing items ordered by usage_count descending
       final results = await db.query(
         DatabaseConstants.tableClothingItems,
-        orderBy: '${DatabaseConstants.columnUsageCount} DESC',
+        orderBy: '${DatabaseConstants.columnUsageCount} DESC, ${DatabaseConstants.columnCreatedAt} DESC, ${DatabaseConstants.columnId} DESC',
         limit: limit,
       );
 
@@ -166,7 +197,7 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
       // Query clothing items ordered by usage_count ascending
       final results = await db.query(
         DatabaseConstants.tableClothingItems,
-        orderBy: '${DatabaseConstants.columnUsageCount} ASC',
+        orderBy: '${DatabaseConstants.columnUsageCount} ASC, ${DatabaseConstants.columnCreatedAt} ASC, ${DatabaseConstants.columnId} ASC',
         limit: limit,
       );
 
@@ -236,11 +267,8 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
         ''',
       );
 
-      if (results.isEmpty || results.first['total'] == null) {
-        return 0.0;
-      }
 
-      return (results.first['total'] as num).toDouble();
+      return (results.first['total'] as num?)?.toDouble() ?? 0.0;
     } catch (e, stackTrace) {
       ErrorLogger.log('Failed to get total value: $e', context: 'AnalyticsRepository.query', error: e, stackTrace: stackTrace);
       throw db_exceptions.DatabaseException(
@@ -268,6 +296,72 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
       operation: 'query',
         cause: e,
       );
+    }
+  }
+
+  /// Helper method to get the distribution of wardrobe value by category
+  Future<Map<String, double>> _getCategoryValueDistribution() async {
+    final db = await _dbManager.database;
+    try {
+      final results = await db.rawQuery(
+        '''
+        SELECT ${DatabaseConstants.columnType}, SUM(${DatabaseConstants.columnPrice}) as total
+        FROM ${DatabaseConstants.tableClothingItems}
+        WHERE ${DatabaseConstants.columnPrice} IS NOT NULL
+        GROUP BY ${DatabaseConstants.columnType}
+        ''',
+      );
+
+      final distribution = <String, double>{};
+      for (final row in results) {
+        final category = row[DatabaseConstants.columnType] as String;
+        final total = (row['total'] as num?)?.toDouble() ?? 0.0;
+        distribution[category] = total;
+      }
+      return distribution;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /// Helper method to get items with lowest Cost-Per-Wear (Best ROI)
+  Future<List<ClothingItem>> _getMostValueForMoney(int limit) async {
+    final db = await _dbManager.database;
+    try {
+      // Logic: Price / (usageCount + 0.1) as tie-breaker for zero usage
+      // We prioritize items with at least 1 usage for "Value for money"
+      final results = await db.rawQuery(
+        '''
+        SELECT * FROM ${DatabaseConstants.tableClothingItems}
+        WHERE ${DatabaseConstants.columnPrice} IS NOT NULL
+        ORDER BY (${DatabaseConstants.columnPrice} / (${DatabaseConstants.columnUsageCount} + 0.1)) ASC
+        LIMIT ?
+        ''',
+        [limit],
+      );
+      return results.map((map) => _fromMap(map)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Helper method to get items with highest price and low usage (Worst ROI)
+  Future<List<ClothingItem>> _getMostWasteful(int limit) async {
+    final db = await _dbManager.database;
+    try {
+      // Logic: Prioritize high absolute price where usage is very low
+      final results = await db.rawQuery(
+        '''
+        SELECT * FROM ${DatabaseConstants.tableClothingItems}
+        WHERE ${DatabaseConstants.columnPrice} IS NOT NULL
+        ORDER BY (${DatabaseConstants.columnPrice} / (${DatabaseConstants.columnUsageCount} + 0.01)) DESC
+        LIMIT ?
+        ''',
+        [limit],
+      );
+      return results.map((map) => _fromMap(map)).toList();
+    } catch (e) {
+      return [];
     }
   }
 
@@ -325,11 +419,11 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
             orElse: () => Season.spring,
           ))
           .toList(),
-      price: map[DatabaseConstants.columnPrice] as double?,
-      usageCount: map[DatabaseConstants.columnUsageCount] as int,
+      price: (map[DatabaseConstants.columnPrice] as num?)?.toDouble(),
+      usageCount: (map[DatabaseConstants.columnUsageCount] as int?) ?? 0,
       isFavorite: (map[DatabaseConstants.columnIsFavorite] as int?) == 1,
       addedDate: DateTime.fromMillisecondsSinceEpoch(
-          map[DatabaseConstants.columnCreatedAt] as int),
+          (map[DatabaseConstants.columnCreatedAt] as int?) ?? DateTime.now().millisecondsSinceEpoch),
     );
   }
 }

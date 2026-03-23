@@ -38,8 +38,8 @@ void main() {
       // Create mock DatabaseManager
       dbManager = DatabaseManager.forTesting(db);
       analyticsRepo = AnalyticsRepositoryImpl(dbManager);
-      clothingRepo = ClothingRepositoryImpl(dbManager);
-      outfitRepo = OutfitRepositoryImpl(dbManager);
+      clothingRepo = ClothingRepositoryImpl(dbManager, analyticsRepo);
+      outfitRepo = OutfitRepositoryImpl(dbManager, analyticsRepo);
     });
 
     tearDown(() async {

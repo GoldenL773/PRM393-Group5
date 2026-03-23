@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:goldfit_frontend/core/database/database_manager.dart';
 import 'package:goldfit_frontend/core/database/database_constants.dart';
@@ -7,6 +8,7 @@ import 'package:goldfit_frontend/shared/utils/error_logger.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/models/filter_state.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository.dart';
+import 'package:goldfit_frontend/shared/repositories/analytics_repository.dart';
 
 /// Concrete implementation of ClothingRepository using SQLite.
 ///
@@ -17,8 +19,11 @@ import 'package:goldfit_frontend/shared/repositories/clothing_repository.dart';
 /// - Data transformation between domain models and database records
 class ClothingRepositoryImpl implements ClothingRepository {
   final DatabaseManager _dbManager;
+  final AnalyticsRepository _analyticsRepo;
 
-  ClothingRepositoryImpl(this._dbManager);
+  ClothingRepositoryImpl(this._dbManager, this._analyticsRepo) {
+    debugPrint('DEBUG: ClothingRepositoryImpl initialized. _analyticsRepo is ${_analyticsRepo.runtimeType}');
+  }
 
   @override
   Future<ClothingItem> create(ClothingItem item) async {
@@ -30,6 +35,11 @@ class ClothingRepositoryImpl implements ClothingRepository {
         _toMap(item),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
+      
+      debugPrint('DEBUG: Calling _analyticsRepo.invalidateCache()...');
+      _analyticsRepo.invalidateCache();
+      debugPrint('DEBUG: Called _analyticsRepo.invalidateCache() successfully.');
+      
       return item;
     } catch (e, stackTrace) {
       ErrorLogger.log('Failed to create clothing item: $e', context: 'ClothingRepository.insert', error: e, stackTrace: stackTrace);
@@ -169,6 +179,8 @@ class ClothingRepositoryImpl implements ClothingRepository {
         );
       }
 
+      debugPrint('DEBUG: Calling _analyticsRepo.invalidateCache() in update...');
+      _analyticsRepo.invalidateCache();
       return item;
     } catch (e, stackTrace) {
       if (e is db_exceptions.DatabaseException) rethrow;
@@ -215,6 +227,8 @@ class ClothingRepositoryImpl implements ClothingRepository {
           );
         }
       });
+      debugPrint('DEBUG: Calling _analyticsRepo.invalidateCache() in delete...');
+      _analyticsRepo.invalidateCache();
     } catch (e, stackTrace) {
       if (e is db_exceptions.DatabaseException) rethrow;
       ErrorLogger.log('Failed to delete clothing item: $e', context: 'ClothingRepository.delete', error: e, stackTrace: stackTrace);
@@ -245,6 +259,8 @@ class ClothingRepositoryImpl implements ClothingRepository {
         await batch.commit(noResult: true);
       });
 
+      debugPrint('DEBUG: Calling _analyticsRepo.invalidateCache() in batchCreate...');
+      _analyticsRepo.invalidateCache();
       return items;
     } catch (e, stackTrace) {
       ErrorLogger.log('Failed to batch create clothing items: $e', context: 'ClothingRepository.batch_insert', error: e, stackTrace: stackTrace);

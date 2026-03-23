@@ -66,10 +66,13 @@ void main() async {
   debugPrint('DEBUG: Database initialized successfully');
 
   // Create repository instances
-  final clothingRepo = ClothingRepositoryImpl(dbManager);
-  final outfitRepo = OutfitRepositoryImpl(dbManager);
   final analyticsRepo = AnalyticsRepositoryImpl(dbManager);
+  final clothingRepo = ClothingRepositoryImpl(dbManager, analyticsRepo);
+  final outfitRepo = OutfitRepositoryImpl(dbManager, analyticsRepo);
   final collectionRepo = CollectionRepositoryImpl(dbManager);
+
+  debugPrint('DEBUG: Repositories created. analyticsRepo is ${analyticsRepo.runtimeType}');
+  debugPrint('DEBUG: clothingRepo is ${clothingRepo.runtimeType}');
 
     // Create auth repository with database
     final authRepo = AuthRepositoryImpl(dbManager);

@@ -3,10 +3,30 @@ import 'package:provider/provider.dart';
 import 'package:goldfit_frontend/features/auth/auth_viewmodel.dart';
 import 'package:goldfit_frontend/features/auth/models/user_model.dart';
 
+import 'package:goldfit_frontend/features/wardrobe/wardrobe_viewmodel.dart';
+import 'package:goldfit_frontend/features/favorites/favorites_viewmodel.dart';
+import 'package:goldfit_frontend/features/planner/planner_viewmodel.dart';
+
 import 'edit_profile_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load data when profile is opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<WardrobeViewModel>().loadItems();
+      context.read<FavoritesViewModel>().loadFavorites();
+      context.read<PlannerViewModel>().loadOutfits();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,50 +190,58 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildStatsSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+    return Consumer3<WardrobeViewModel, FavoritesViewModel, PlannerViewModel>(
+      builder: (context, wardrobeVm, favoritesVm, plannerVm, child) {
+        final itemsCount = wardrobeVm.items.length;
+        final outfitsCount = plannerVm.outfits.length;
+        final favoritesCount = favoritesVm.favoriteOutfits.length + favoritesVm.favoriteClothes.length;
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildStatItem(
-            icon: Icons.checkroom,
-            value: '0',
-            label: 'Items',
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildStatItem(
+                icon: Icons.checkroom,
+                value: '$itemsCount',
+                label: 'Items',
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: const Color(0xFFE6E1D6),
+              ),
+              _buildStatItem(
+                icon: Icons.style,
+                value: '$outfitsCount',
+                label: 'Outfits',
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: const Color(0xFFE6E1D6),
+              ),
+              _buildStatItem(
+                icon: Icons.favorite,
+                value: '$favoritesCount',
+                label: 'Favorites',
+              ),
+            ],
           ),
-          Container(
-            width: 1,
-            height: 40,
-            color: const Color(0xFFE6E1D6),
-          ),
-          _buildStatItem(
-            icon: Icons.style,
-            value: '0',
-            label: 'Outfits',
-          ),
-          Container(
-            width: 1,
-            height: 40,
-            color: const Color(0xFFE6E1D6),
-          ),
-          _buildStatItem(
-            icon: Icons.favorite,
-            value: '0',
-            label: 'Favorites',
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

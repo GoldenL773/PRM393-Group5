@@ -521,27 +521,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 24),
         ],
 
-        if (kDebugMode && viewModel.aiDebugLog != null) ...[
-          ExpansionTile(
-            leading: const Icon(Icons.bug_report, color: Colors.orange, size: 18),
-            title: const Text('AI Debug Log', style: TextStyle(fontSize: 13, color: Colors.orange)),
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black87,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  viewModel.aiDebugLog!,
-                  style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-        ],
+        const SizedBox(height: 16),
 
         const Text(
           'Recommended for Today',

@@ -6,6 +6,7 @@ import 'package:goldfit_frontend/shared/models/outfit.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/repositories/outfit_repository_impl.dart';
 import 'package:goldfit_frontend/shared/repositories/clothing_repository_impl.dart';
+import 'package:goldfit_frontend/shared/repositories/analytics_repository_impl.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -37,8 +38,9 @@ void main() {
 
     // Create mock database manager
     dbManager = DatabaseManager.forTesting(db);
-    outfitRepository = OutfitRepositoryImpl(dbManager);
-    clothingRepository = ClothingRepositoryImpl(dbManager);
+    final analyticsRepository = AnalyticsRepositoryImpl(dbManager);
+    outfitRepository = OutfitRepositoryImpl(dbManager, analyticsRepository);
+    clothingRepository = ClothingRepositoryImpl(dbManager, analyticsRepository);
   });
 
   tearDown(() async {

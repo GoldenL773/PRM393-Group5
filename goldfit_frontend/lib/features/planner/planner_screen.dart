@@ -6,7 +6,6 @@ import 'package:goldfit_frontend/shared/models/outfit.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 import 'package:goldfit_frontend/features/planner/planner_viewmodel.dart';
 import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
-import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:intl/intl.dart';
 
 /// Planner screen displaying calendar view for outfit planning
@@ -835,33 +834,33 @@ class _PlannerScreenState extends State<PlannerScreen> {
   Widget _buildActionButtons(BuildContext context, PlannerViewModel viewModel) {
     return Row(
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _handleAddToCalendar(context, viewModel),
-            icon: const Icon(
-              Icons.calendar_month,
-              size: 16,
-              color: GoldFitTheme.textDark,
-            ),
-            label: const Text(
-              'ADD TO CALENDAR',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 10,
-                color: GoldFitTheme.textDark,
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              backgroundColor: const Color(0xFFEBEBEB),
-              side: BorderSide.none,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
+        // Expanded(
+        //   child: OutlinedButton.icon(
+        //     onPressed: () => _handleAddToCalendar(context, viewModel),
+        //     icon: const Icon(
+        //       Icons.calendar_month,
+        //       size: 16,
+        //       color: GoldFitTheme.textDark,
+        //     ),
+        //     label: const Text(
+        //       'ADD TO CALENDAR',
+        //       style: TextStyle(
+        //         fontWeight: FontWeight.w800,
+        //         fontSize: 10,
+        //         color: GoldFitTheme.textDark,
+        //       ),
+        //     ),
+        //     style: OutlinedButton.styleFrom(
+        //       backgroundColor: const Color(0xFFEBEBEB),
+        //       side: BorderSide.none,
+        //       padding: const EdgeInsets.symmetric(vertical: 16),
+        //       shape: RoundedRectangleBorder(
+        //         borderRadius: BorderRadius.circular(30),
+        //       ),
+        //     ),
+        //   ),
+        // ),
+        // const SizedBox(width: 12),
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () => _handleCloneDay(context, viewModel),
@@ -924,60 +923,6 @@ class _PlannerScreenState extends State<PlannerScreen> {
     }
   }
 
-  void _handleAddToCalendar(BuildContext context, PlannerViewModel viewModel) {
-    if (!viewModel.hasAnyOutfitForDate(_selectedDay)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No outfits to add to calendar')),
-      );
-      return;
-    }
-
-    final morningOutfit = viewModel.getOutfitForDateAndTime(
-      _selectedDay,
-      'morning',
-    );
-    final afternoonOutfit = viewModel.getOutfitForDateAndTime(
-      _selectedDay,
-      'afternoon',
-    );
-    final eveningOutfit = viewModel.getOutfitForDateAndTime(
-      _selectedDay,
-      'evening',
-    );
-
-    void addEvent(Outfit outfit, int hour) {
-      final Event event = Event(
-        title: outfit.eventName ?? 'GoldFit - ${outfit.name}',
-        description: 'Wearing: ${outfit.name}',
-        location: '',
-        startDate: DateTime(
-          _selectedDay.year,
-          _selectedDay.month,
-          _selectedDay.day,
-          hour,
-          0,
-        ),
-        endDate: DateTime(
-          _selectedDay.year,
-          _selectedDay.month,
-          _selectedDay.day,
-          hour + 2,
-          0,
-        ),
-        allDay: false,
-      );
-      Add2Calendar.addEvent2Cal(event);
-    }
-
-    if (morningOutfit != null) addEvent(morningOutfit, 9); // 9 AM
-    if (afternoonOutfit != null) addEvent(afternoonOutfit, 13); // 1 PM
-    if (eveningOutfit != null) addEvent(eveningOutfit, 19); // 7 PM
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Opening calendar app...')));
-  }
-
   void _showOutfitDetails(BuildContext context, Outfit outfit) {
     showModalBottomSheet(
       context: context,
@@ -1031,6 +976,13 @@ class _PlannerScreenState extends State<PlannerScreen> {
         maxChildSize: 0.9,
         expand: false,
         builder: (context, scrollController) {
+          // Refresh outfits to include newly created ones from Try-On
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              viewModel.loadOutfits();
+            }
+          });
+          
           final outfits = viewModel.outfits;
           final appState = Provider.of<AppState>(context, listen: false);
           final items = appState.allItems;
@@ -1080,7 +1032,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
                                 ),
                               )
                             : ListView.builder(
+                                key: const PageStorageKey('planner_outfits_list'),
                                 controller: scrollController,
+                                physics: const AlwaysScrollableScrollPhysics(),
                                 padding: const EdgeInsets.all(16),
                                 itemCount: outfits.length,
                                 itemBuilder: (context, index) {
@@ -1135,6 +1089,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                                 ),
                               )
                             : GridView.builder(
+                                key: const PageStorageKey('planner_items_grid'),
                                 controller: scrollController,
                                 padding: const EdgeInsets.all(16),
                                 gridDelegate:

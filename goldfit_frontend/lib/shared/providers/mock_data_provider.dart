@@ -226,12 +226,41 @@ class MockDataProvider {
     
     // Get 5 least worn items (reverse order)
     final leastWorn = sortedByUsage.reversed.take(5).toList();
-    
+
+    // Calculate category value distribution
+    final categoryValueDistribution = <String, double>{};
+    for (var item in _items) {
+      if (item.price != null) {
+        final categoryName = item.type.toString().split('.').last;
+        categoryValueDistribution[categoryName] = (categoryValueDistribution[categoryName] ?? 0.0) + item.price!;
+      }
+    }
+
+    // Calculate Most Value for Money (Lowest CPW)
+    final itemsWithPrice = _items.where((i) => i.price != null).toList();
+    final mostValueForMoney = List<ClothingItem>.from(itemsWithPrice)
+      ..sort((a, b) {
+        final cpwA = a.price! / (a.usageCount == 0 ? 0.1 : a.usageCount);
+        final cpwB = b.price! / (b.usageCount == 0 ? 0.1 : b.usageCount);
+        return cpwA.compareTo(cpwB);
+      });
+
+    // Calculate Most Wasteful (Highest CPW)
+    final mostWasteful = List<ClothingItem>.from(itemsWithPrice)
+      ..sort((a, b) {
+        final cpwA = a.price! / (a.usageCount == 0 ? 0.01 : a.usageCount);
+        final cpwB = b.price! / (b.usageCount == 0 ? 0.01 : b.usageCount);
+        return cpwB.compareTo(cpwA);
+      });
+
     return WardrobeAnalytics(
       totalItems: totalItems,
       totalValue: totalValue,
       mostWorn: mostWorn,
       leastWorn: leastWorn,
+      mostValueForMoney: mostValueForMoney.take(3).toList(),
+      mostWasteful: mostWasteful.take(3).toList(),
+      categoryValueDistribution: categoryValueDistribution,
     );
   }
 

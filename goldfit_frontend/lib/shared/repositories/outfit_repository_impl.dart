@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:goldfit_frontend/core/database/database_manager.dart';
 import 'package:goldfit_frontend/core/database/database_constants.dart';
@@ -5,6 +6,7 @@ import 'package:goldfit_frontend/core/database/database_exceptions.dart' as db_e
 import 'package:goldfit_frontend/shared/utils/error_logger.dart';
 import 'package:goldfit_frontend/shared/models/outfit.dart';
 import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
+import 'package:goldfit_frontend/shared/repositories/analytics_repository.dart';
 
 /// Concrete implementation of OutfitRepository using SQLite.
 ///
@@ -17,8 +19,11 @@ import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
 /// All multi-table operations use transactions to ensure atomicity.
 class OutfitRepositoryImpl implements OutfitRepository {
   final DatabaseManager _dbManager;
+  final AnalyticsRepository _analyticsRepo;
 
-  OutfitRepositoryImpl(this._dbManager);
+  OutfitRepositoryImpl(this._dbManager, this._analyticsRepo) {
+    debugPrint('DEBUG: OutfitRepositoryImpl initialized. _analyticsRepo is ${_analyticsRepo.runtimeType}');
+  }
 
   @override
   Future<Outfit> create(Outfit outfit) async {
@@ -49,6 +54,8 @@ class OutfitRepositoryImpl implements OutfitRepository {
         }
       });
 
+      debugPrint('DEBUG: Calling _analyticsRepo.invalidateCache() in outfit create...');
+      _analyticsRepo.invalidateCache();
       return outfit;
     } catch (e, stackTrace) {
       ErrorLogger.log('Failed to create outfit: $e', context: 'OutfitRepository.insert', error: e, stackTrace: stackTrace);
@@ -224,6 +231,8 @@ class OutfitRepositoryImpl implements OutfitRepository {
         }
       });
 
+      debugPrint('DEBUG: Calling _analyticsRepo.invalidateCache() in outfit update...');
+      _analyticsRepo.invalidateCache();
       return outfit;
     } catch (e, stackTrace) {
       if (e is db_exceptions.DatabaseException) rethrow;
@@ -270,6 +279,8 @@ class OutfitRepositoryImpl implements OutfitRepository {
           );
         }
       });
+      debugPrint('DEBUG: Calling _analyticsRepo.invalidateCache() in outfit delete...');
+      _analyticsRepo.invalidateCache();
     } catch (e, stackTrace) {
       if (e is db_exceptions.DatabaseException) rethrow;
       ErrorLogger.log('Failed to delete outfit: $e', context: 'OutfitRepository.delete', error: e, stackTrace: stackTrace);
@@ -312,6 +323,8 @@ class OutfitRepositoryImpl implements OutfitRepository {
           await recordUsage(outfitId, normalizedDate, txn: txn);
         }
       });
+      debugPrint('DEBUG: Calling _analyticsRepo.invalidateCache() in assignToDate...');
+      _analyticsRepo.invalidateCache();
     } catch (e, stackTrace) {
       ErrorLogger.log('Failed to assign outfit to date: $e', context: 'OutfitRepository.insert', error: e, stackTrace: stackTrace);
       throw db_exceptions.DatabaseException(
@@ -374,6 +387,8 @@ class OutfitRepositoryImpl implements OutfitRepository {
           WHERE ${DatabaseConstants.columnId} = ?
         ''', [now.millisecondsSinceEpoch, clothingItemId]);
       }
+      debugPrint('DEBUG: Calling _analyticsRepo.invalidateCache() in recordUsage...');
+      _analyticsRepo.invalidateCache();
     } catch (e, stackTrace) {
       ErrorLogger.log('Failed to record usage: $e', context: 'OutfitRepository.insert', error: e, stackTrace: stackTrace);
       throw db_exceptions.DatabaseException(

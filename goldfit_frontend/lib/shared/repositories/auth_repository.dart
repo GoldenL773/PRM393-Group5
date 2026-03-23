@@ -7,6 +7,8 @@ abstract class AuthRepository {
   Future<void> signOut();
   Future<UserModel?> getCurrentUser();
   Future<UserModel?> updateUser(UserModel user);
+  Future<UserModel?> updateEmail(String userId, String newEmail);
+  Future<bool> updatePassword(String userId, String currentPassword, String newPassword);
   Future<String?> createSession(String userId);
   Future<bool> validateSession(String sessionToken);
   Future<void> revokeSession(String sessionToken);

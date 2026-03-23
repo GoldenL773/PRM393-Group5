@@ -91,19 +91,25 @@ class HomeViewModel extends ChangeNotifier {
       if (_weather != null && allItems.isNotEmpty) {
         final weatherStr = '${_weather!.condition}, ${_weather!.temperature}°C';
         
-        // Determine local target seasons 
-        if (_weather!.temperature >= 25) {
+        // Determine granular target seasons 
+        if (_weather!.temperature >= 26) {
           targetSeasons = ['summer'];
-        } else if (_weather!.temperature >= 15) {
+        } else if (_weather!.temperature >= 18) {
+          targetSeasons = ['summer', 'spring'];
+        } else if (_weather!.temperature >= 12) {
           targetSeasons = ['spring', 'fall', 'autumn'];
         } else {
           targetSeasons = ['winter', 'fall', 'autumn'];
         }
 
-        // Cache key for today's weather
+        // Cache key based on date, weather condition, temperature bucket (2°C), and wardrobe count
         final dateKey = DateTime.now().toIso8601String().substring(0, 10);
+        final tempBucket = (_weather!.temperature / 2).round() * 2;
+        final weatherCond = _weather!.condition.replaceAll(' ', '_');
+        final wardrobeCount = allItems.length;
+        
         final prefs = await SharedPreferences.getInstance();
-        final cacheKey = 'ai_recs_$dateKey';
+        final cacheKey = 'ai_recs_${dateKey}_${weatherCond}_t${tempBucket}_w$wardrobeCount';
         String? jsonResponse = prefs.getString(cacheKey);
 
         if (jsonResponse == null || jsonResponse.isEmpty) {
@@ -114,7 +120,9 @@ class HomeViewModel extends ChangeNotifier {
           }
         }
 
-        _aiDebugLog = 'Weather: $weatherStr\\nCached/Fetched AI Response: $jsonResponse';
+        _aiDebugLog = 'Weather: $weatherStr (Bucket: ${tempBucket}°C)\\n'
+            'Cache Key: $cacheKey\\n'
+            'Response: $jsonResponse';
 
         if (jsonResponse != null) {
           try {

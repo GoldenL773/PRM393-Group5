@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:goldfit_frontend/shared/utils/theme_background.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:goldfit_frontend/core/routing/app_shell.dart';
@@ -97,7 +98,7 @@ void main() async {
   } catch (e, stackTrace) {
     debugPrint('DEBUG: FATAL ERROR during startup: $e');
     debugPrint('DEBUG: StackTrace: $stackTrace');
-    
+
     // Fallback to show error in app if possible, or at least keep log visible
     runApp(MaterialApp(
       home: Scaffold(
@@ -150,6 +151,11 @@ class GoldFitApp extends StatelessWidget {
         Provider<AnalyticsRepository>.value(value: analyticsRepository),
         Provider<CollectionRepository>.value(value: collectionRepository),
 
+        //Background theme
+        ChangeNotifierProvider(
+          create: (_) => ThemeBackgroundApp(),
+        ),
+
         // ViewModels
         ChangeNotifierProvider(
           create: (_) => WardrobeViewModel(clothingRepository),
@@ -186,42 +192,37 @@ class GoldFitApp extends StatelessWidget {
         ),
         Provider<NavigationManager>(create: (_) => NavigationManager()),
       ],
-      child: MaterialApp(
-        title: 'GoldFit',
-        theme: GoldFitTheme.lightTheme,
-        home: Consumer<AuthViewModel>(
-          builder: (context, authVm, _) {
-            // Show loading indicator while checking auth state
-            if (authVm.isLoading) {
-              return const Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFC5A028),
-                  ),
-                ),
-              );
-            }
-
-            // If authenticated, show main app, otherwise show auth screen
-            if (authVm.isAuthenticated) {
-              return const AppShell();
-            }
-
-            return const AuthScreen();
-          },
-        ),
-        routes: {
-          AppRoutes.itemDetail: (context) => const ItemDetailScreen(),
-          AppRoutes.editItem: (context) => const EditClothingScreen(),
-          AppRoutes.tryOn: (context) => const TryOnScreen(),
-          AppRoutes.styling: (context) => const StylingScreen(),
-          AppRoutes.recommendations: (context) => const RecommendationsScreen(),
-          AppRoutes.favorites: (context) => const FavoritesScreen(),
-          AppRoutes.settings: (context) => const SettingsScreen(),
-          AppRoutes.debugLogs: (context) => const DebugLogViewerScreen(),
-          AppRoutes.auth: (context) => const AuthScreen(),
-          AppRoutes.collectionEditor: (context) =>
-              const CollectionEditorScreen(),
+      child: Consumer2<AuthViewModel, ThemeBackgroundApp>(
+        builder: (context, authVm, themeProvider, _) {
+          return MaterialApp(
+            title: 'GoldFit',
+            theme: GoldFitTheme.lightTheme,
+            darkTheme: GoldFitTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: authVm.isLoading
+                ? const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFC5A028),
+                      ),
+                    ),
+                  )
+                : authVm.isAuthenticated
+                    ? const AppShell()
+                    : const AuthScreen(),
+            routes: {
+              AppRoutes.itemDetail: (context) => const ItemDetailScreen(),
+              AppRoutes.editItem: (context) => const EditClothingScreen(),
+              AppRoutes.tryOn: (context) => const TryOnScreen(),
+              AppRoutes.styling: (context) => const StylingScreen(),
+              AppRoutes.recommendations: (context) => const RecommendationsScreen(),
+              AppRoutes.favorites: (context) => const FavoritesScreen(),
+              AppRoutes.settings: (context) => const SettingsScreen(),
+              AppRoutes.debugLogs: (context) => const DebugLogViewerScreen(),
+              AppRoutes.auth: (context) => const AuthScreen(),
+              AppRoutes.collectionEditor: (context) => const CollectionEditorScreen(),
+            },
+          );
         },
       ),
     );

@@ -116,6 +116,53 @@ class AuthViewModel extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> updateEmail(String newEmail) async {
+    if (_currentUser == null) return false;
+
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authRepository.updateEmail(_currentUser!.id, newEmail);
+
+      if (result != null) {
+        _currentUser = result;
+        _setLoading(false);
+        return true;
+      }
+
+      _setError('Failed to update email');
+      return false;
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> updatePassword(String currentPassword, String newPassword) async {
+    if (_currentUser == null) return false;
+
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authRepository.updatePassword(
+        _currentUser!.id,
+        currentPassword,
+        newPassword,
+      );
+
+      _setLoading(false);
+      return result;
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
   Future<void> signOut() async {
     _setLoading(true);
     await _authRepository.signOut();

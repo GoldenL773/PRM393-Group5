@@ -224,7 +224,6 @@ class AuthRepositoryImpl implements AuthRepository {
         whereArgs: [user.id],
       );
 
-      // Cập nhật current user nếu đang đăng nhập
       if (_currentUser?.id == user.id) {
         _currentUser = user;
       }
@@ -235,6 +234,77 @@ class AuthRepositoryImpl implements AuthRepository {
       throw Exception('Failed to update user: $e');
     }
   }
+
+  @override
+  Future<UserModel?> updateEmail(String userId, String newEmail) async {
+    try {
+      final db = await _dbManager.database;
+      
+      final existingUser = await _findUserByEmail(newEmail);
+      if (existingUser != null && existingUser.id != userId) {
+        throw Exception('Email already in use');
+      }
+
+      await db.update(
+        DatabaseConstants.tableUsers,
+        {
+          DatabaseConstants.columnEmail: newEmail.toLowerCase(),
+          DatabaseConstants.columnUpdatedAt: DateTime.now().millisecondsSinceEpoch,
+        },
+        where: '${DatabaseConstants.columnUserId} = ?',
+        whereArgs: [userId],
+      );
+
+      if (_currentUser?.id == userId) {
+        _currentUser = _currentUser!.copyWith(email: newEmail);
+      }
+
+      return _currentUser;
+    } catch (e) {
+      debugPrint('Update email failed: $e');
+      throw Exception('Failed to update email: $e');
+    }
+  }
+
+  @override
+  Future<bool> updatePassword(String userId, String currentPassword, String newPassword) async {
+    try {
+      final db = await _dbManager.database;
+      
+      final results = await db.query(
+        DatabaseConstants.tableUsers,
+        where: '${DatabaseConstants.columnUserId} = ?',
+        whereArgs: [userId],
+      );
+
+      if (results.isEmpty) {
+        throw Exception('User not found');
+      }
+
+      final userData = results.first;
+      final storedPassword = userData[DatabaseConstants.columnPasswordHash] as String?;
+
+      if (storedPassword != currentPassword) {
+        throw Exception('Current password is incorrect');
+      }
+
+      await db.update(
+        DatabaseConstants.tableUsers,
+        {
+          DatabaseConstants.columnPasswordHash: newPassword,
+          DatabaseConstants.columnUpdatedAt: DateTime.now().millisecondsSinceEpoch,
+        },
+        where: '${DatabaseConstants.columnUserId} = ?',
+        whereArgs: [userId],
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint('Update password failed: $e');
+      throw Exception('Failed to update password: $e');
+    }
+  }
+
   Future<void> _updateLastLogin(String userId) async {
     final db = await _dbManager.database;
     await db.update(

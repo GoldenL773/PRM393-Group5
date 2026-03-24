@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:goldfit_frontend/features/insights/insights_viewmodel.dart';
 import 'package:goldfit_frontend/shared/widgets/analytics_card.dart';
 import 'package:goldfit_frontend/shared/widgets/clothing_item_card.dart';
+import 'package:goldfit_frontend/features/wardrobe/wardrobe_viewmodel.dart';
 import 'package:goldfit_frontend/shared/utils/routes.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 
@@ -282,6 +283,11 @@ class _InsightsScreenState extends State<InsightsScreen> {
             ),
             child: ClothingItemCard(
               item: item,
+              onFavoriteToggle: () {
+                context.read<WardrobeViewModel>().toggleFavorite(item.id);
+                // Also reload analytics to reflect changes if necessary
+                context.read<InsightsViewModel>().loadAnalytics();
+              },
               onTap: () {
                 Navigator.pushNamed(
                   context,

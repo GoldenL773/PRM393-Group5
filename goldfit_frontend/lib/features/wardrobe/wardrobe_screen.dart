@@ -18,6 +18,7 @@ import 'package:goldfit_frontend/shared/utils/routes.dart';
 import 'package:goldfit_frontend/shared/utils/navigation_manager.dart';
 import 'package:goldfit_frontend/core/storage/image_storage_manager.dart';
 import 'package:goldfit_frontend/shared/services/gemini_service.dart';
+import 'package:goldfit_frontend/shared/repositories/outfit_repository.dart';
 
 /// Wardrobe screen displaying clothing items in a grid with category tabs and filtering.
 ///
@@ -48,7 +49,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     super.initState();
     // Load items when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WardrobeViewModel>().loadItems();
+      final outfitRepo = context.read<OutfitRepository>();
+      context.read<WardrobeViewModel>().loadItems(outfitRepo: outfitRepo);
       context.read<CollectionViewModel?>()?.loadCollections();
     });
   }
@@ -464,7 +466,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             ),
           ),
           TextButton(
-            onPressed: () => viewModel.loadItems(),
+            onPressed: () {
+              final outfitRepo = context.read<OutfitRepository>();
+              viewModel.loadItems(outfitRepo: outfitRepo);
+            },
             child: const Text('Retry'),
           ),
         ],
@@ -600,6 +605,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         final item = items[index];
         return ClothingItemCard(
           item: item,
+          onFavoriteToggle: () {
+            context.read<WardrobeViewModel>().toggleFavorite(item.id);
+          },
           onTap: () {
             // Navigate to item detail screen with item ID
             final navigationManager = Provider.of<NavigationManager>(

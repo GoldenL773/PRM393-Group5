@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -12,9 +13,42 @@ import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 import 'package:goldfit_frontend/core/storage/image_storage_manager.dart';
 import 'package:goldfit_frontend/shared/services/gemini_service.dart';
 import 'package:goldfit_frontend/shared/services/pose_detection_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:goldfit_frontend/features/wardrobe/wardrobe_viewmodel.dart';
 import 'package:goldfit_frontend/features/favorites/favorites_viewmodel.dart';
 import 'package:uuid/uuid.dart';
+import 'package:image/image.dart' as img;
+import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
+import 'package:goldfit_frontend/features/try_on/try_on_compare_screen.dart';
+
+Uint8List _trimImage(Uint8List bytes) {
+  final image = img.decodeImage(bytes);
+  if (image == null) return bytes;
+  
+  try {
+     int minX = image.width, minY = image.height, maxX = 0, maxY = 0;
+     bool found = false;
+     for (int y = 0; y < image.height; y++) {
+       for (int x = 0; x < image.width; x++) {
+         final pixel = image.getPixel(x, y);
+         if (pixel.a > 10) {
+           if (x < minX) minX = x;
+           if (x > maxX) maxX = x;
+           if (y < minY) minY = y;
+           if (y > maxY) maxY = y;
+           found = true;
+         }
+       }
+     }
+     if (!found) return bytes;
+     
+     final cropped = img.copyCrop(image, x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1);
+     return Uint8List.fromList(img.encodePng(cropped));
+  } catch (e) {
+     return bytes; // fallback
+  }
+}
 
 /// Try-On screen for virtual try-on with Quick Try and Realistic Fitting modes
 /// Displays base photo, mode toggle, clothing selector, and save outfit button
@@ -44,9 +78,81 @@ class _TryOnScreenState extends State<TryOnScreen> {
   final Set<String> _processingItems = {}; // To prevent concurrent processing of the same item
   final ImageStorageManager _imageStorageManager = ImageStorageManager();
   
-  // Track manual offsets for clothing items in Quick Try mode
+  // Track manual offsets, scales, and rotations for clothing items in Quick Try mode
   final Map<String, Offset> _clothingOffsets = {};
+  final Map<String, double> _clothingScales = {};
+  final Map<String, double> _clothingRotations = {};
+  
+  // Temporary state for gestures
+  final Map<String, double> _initialScales = {};
+  final Map<String, double> _initialRotations = {};
+  
+  // Scene Switcher
+  String? _selectedSceneUrl;
+  String? _transparentBasePhotoPath;
+  String? _transparentRealisticImagePath;
+
+  // RepaintBoundary key for screenshot capture
+  final GlobalKey _tryOnGlobalKey = GlobalKey();
+
+  final List<Map<String, String>> _scenes = [
+    {'name': 'Original', 'asset': ''},
+    {'name': 'Office', 'asset': 'assets/images/scenes/office.png'},
+    {'name': 'Street', 'asset': 'assets/images/scenes/street.png'},
+    {'name': 'Luxury Bar', 'asset': 'assets/images/scenes/bar.png'},
+    {'name': 'Beach', 'asset': 'assets/images/scenes/beach.png'},
+  ];
+  
+  static const String _basePhotoPrefKey = 'try_on_base_photo_path';
   // ------------------------------------------
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedBasePhoto();
+  }
+
+  Future<void> _loadSavedBasePhoto() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString(_basePhotoPrefKey);
+    if (savedPath != null && savedPath.isNotEmpty) {
+      setState(() {
+        _basePhotoPath = savedPath;
+        _standardizedModelPath = savedPath;
+        _vtoLoadingStep = 'Analyzing saved pose...';
+      });
+      try {
+        final absolutePath = await _imageStorageManager.getImagePath(savedPath);
+        final file = File(absolutePath);
+        if (await file.exists()) {
+          final poseResult = await _poseService.analyzeImage(absolutePath);
+          if (mounted) {
+            setState(() {
+              _poseResult = poseResult;
+              _vtoLoadingStep = '';
+            });
+          }
+        } else {
+          // File not found, delete preference
+          await prefs.remove(_basePhotoPrefKey);
+          if (mounted) {
+            setState(() {
+              _basePhotoPath = null;
+              _standardizedModelPath = null;
+              _vtoLoadingStep = '';
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to load saved base photo: $e');
+        if (mounted) {
+          setState(() {
+            _vtoLoadingStep = '';
+          });
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -54,7 +160,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
     super.dispose();
   }
 
-  String? _realisticImagePath; // Path to AI-generated image? _poseResult;
+  String? _realisticImagePath; // Path to AI-generated image
 
   @override
   void didChangeDependencies() {
@@ -98,11 +204,57 @@ class _TryOnScreenState extends State<TryOnScreen> {
       appBar: AppBar(
         title: const Text('Virtual Try-On'),
         actions: [
-          // Save outfit button
-          IconButton(
-            icon: const Icon(Icons.bookmark_border),
-            onPressed: () => _saveToFavorites(),
-            tooltip: 'Save Outfit',
+          // Compare A/B
+          TextButton.icon(
+            icon: const Icon(Icons.compare_arrows, color: GoldFitTheme.gold600),
+            label: const Text('Compare', style: TextStyle(color: GoldFitTheme.gold600, fontWeight: FontWeight.bold)),
+            onPressed: () async {
+              final appState = Provider.of<AppState>(context, listen: false);
+              String? comparePath;
+              
+              if (appState.tryOnMode == TryOnMode.realistic) {
+                comparePath = _realisticImagePath ?? _basePhotoPath;
+              } else {
+                // Quick Try mode - Capture composite screenshot
+                try {
+                  final boundary = _tryOnGlobalKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+                  if (boundary != null) {
+                    final image = await boundary.toImage(pixelRatio: 2.0);
+                    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+                    if (byteData != null) {
+                      comparePath = await _imageStorageManager.saveTempImageFromBytes(byteData.buffer.asUint8List());
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('Compare screenshot failed: $e');
+                }
+                
+                // If screenshot failed, use base photo
+                comparePath ??= _basePhotoPath;
+              }
+
+              // Final safety check & Convert to absolute path
+              if (comparePath != null) {
+                final absolutePath = await _imageStorageManager.getImagePath(comparePath);
+                if (await File(absolutePath).exists()) {
+                  comparePath = absolutePath;
+                } else if (_basePhotoPath != null) {
+                  comparePath = await _imageStorageManager.getImagePath(_basePhotoPath!);
+                }
+              } else if (_basePhotoPath != null) {
+                comparePath = await _imageStorageManager.getImagePath(_basePhotoPath!);
+              }
+
+              if (!mounted) return;
+
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => TryOnCompareScreen(
+                  currentTryOnPath: comparePath,
+                  currentOutfitName: comparePath != null ? 'Current Look' : null,
+                ))
+              );
+            },
           ),
         ],
       ),
@@ -124,6 +276,9 @@ class _TryOnScreenState extends State<TryOnScreen> {
         Expanded(
           child: _buildBasePhotoArea(context, appState, Orientation.portrait),
         ),
+        
+        // Scene Switcher
+        _buildSceneSwitcher(),
         
         // Clothing selector button at bottom
         _buildClothingSelectorButton(context, appState),
@@ -224,9 +379,24 @@ class _TryOnScreenState extends State<TryOnScreen> {
                 ),
                 child: AspectRatio(
                   aspectRatio: targetAspectRatio,
-                  child: appState.tryOnMode == TryOnMode.quick
-                      ? _buildQuickTryMode(context, appState)
-                      : _buildRealisticMode(context, appState),
+                  child: RepaintBoundary(
+                    key: _tryOnGlobalKey,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // SCENE BACKGROUND
+                        if (_selectedSceneUrl != null && _selectedSceneUrl!.isNotEmpty)
+                          Image.asset(
+                            _selectedSceneUrl!,
+                            fit: BoxFit.cover,
+                          ),
+                        // Core try on mode
+                        appState.tryOnMode == TryOnMode.quick
+                            ? _buildQuickTryMode(context, appState)
+                            : _buildRealisticMode(context, appState),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             );
@@ -237,7 +407,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
   }
 
   /// Builds the Quick Try Mode with 2D overlay
-  /// Uses Stack widget to layer clothing items on base photo
+  /// Uses Stack widgets to layer clothing items on base photo
   /// Requirements: 8.4
   Widget _buildQuickTryMode(BuildContext context, AppState appState) {
     if (_isStandardizingModel) {
@@ -288,13 +458,23 @@ class _TryOnScreenState extends State<TryOnScreen> {
             fit: StackFit.expand,
             children: [
               // Base photo layer / default silhouette background
-              if (_basePhotoPath != null)
+              if (_transparentBasePhotoPath != null && _selectedSceneUrl != null && _selectedSceneUrl!.isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: LocalImageWidget(
-                    imagePath: _basePhotoPath!,
+                  child: Image.file(
+                    File(_transparentBasePhotoPath!),
                     fit: BoxFit.cover,
                   ),
+                )
+              else if (_basePhotoPath != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: _selectedSceneUrl != null && _selectedSceneUrl!.isNotEmpty 
+                      ? const SizedBox() // Transparent place if loading background removal
+                      : LocalImageWidget(
+                          imagePath: _basePhotoPath!,
+                          fit: BoxFit.cover,
+                        ),
                 )
               else
                 // Default model background when no photo chosen
@@ -516,12 +696,30 @@ class _TryOnScreenState extends State<TryOnScreen> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (_realisticImagePath != null)
-          // Display the actual AI generated image
+        if (_transparentRealisticImagePath != null && _selectedSceneUrl != null && _selectedSceneUrl!.isNotEmpty)
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.file(
-              File(_realisticImagePath!),
+              File(_transparentRealisticImagePath!),
+              fit: BoxFit.cover,
+            ),
+          )
+        else if (_realisticImagePath != null)
+          // Display the actual AI generated image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: _selectedSceneUrl != null && _selectedSceneUrl!.isNotEmpty 
+                ? const SizedBox()
+                : Image.file(
+                    File(_realisticImagePath!),
+                    fit: BoxFit.cover,
+                  ),
+          )
+        else if (_transparentBasePhotoPath != null && _selectedSceneUrl != null && _selectedSceneUrl!.isNotEmpty)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.file(
+              File(_transparentBasePhotoPath!),
               fit: BoxFit.cover,
             ),
           )
@@ -529,10 +727,12 @@ class _TryOnScreenState extends State<TryOnScreen> {
           // Fallback to base photo if AI failed but photo exists
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: LocalImageWidget(
-              imagePath: _basePhotoPath!,
-              fit: BoxFit.cover,
-            ),
+            child: _selectedSceneUrl != null && _selectedSceneUrl!.isNotEmpty
+                ? const SizedBox()
+                : LocalImageWidget(
+                    imagePath: _basePhotoPath!,
+                    fit: BoxFit.cover,
+                  ),
           )
         else
           // Original placeholder logic
@@ -732,6 +932,25 @@ class _TryOnScreenState extends State<TryOnScreen> {
     if (outfitName == null || outfitName.isEmpty) return;
 
     try {
+      // For Quick Try mode, try to capture a composite screenshot from the view
+      String? quickTryScreenshotPath;
+      if (appState.tryOnMode == TryOnMode.quick && _basePhotoPath != null) {
+        try {
+          final boundary = _tryOnGlobalKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+          if (boundary != null) {
+            final image = await boundary.toImage(pixelRatio: 2.0);
+            final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+            if (byteData != null) {
+              quickTryScreenshotPath = await _imageStorageManager.saveTempImageFromBytes(byteData.buffer.asUint8List());
+            }
+          }
+        } catch (screenshotError) {
+          debugPrint('Screenshot capture failed: $screenshotError');
+          // Use base photo as fallback
+          quickTryScreenshotPath = _basePhotoPath;
+        }
+      }
+      
       final outfit = Outfit(
         id: const Uuid().v4(),
         name: outfitName,
@@ -739,7 +958,9 @@ class _TryOnScreenState extends State<TryOnScreen> {
         createdDate: DateTime.now(),
         isFavorite: true,
         modelImagePath: _basePhotoPath,
-        resultImagePath: appState.tryOnMode == TryOnMode.realistic ? _realisticImagePath : null,
+        resultImagePath: appState.tryOnMode == TryOnMode.realistic 
+            ? _realisticImagePath 
+            : quickTryScreenshotPath,
         vibe: 'Custom', // Default vibe
       );
 
@@ -913,8 +1134,10 @@ class _TryOnScreenState extends State<TryOnScreen> {
             final cleanedBase64 = await _geminiService.removeBackground(absolutePath);
             if (cleanedBase64 != null) {
               final bytes = base64Decode(cleanedBase64);
+              final trimmedBytes = await compute(_trimImage, bytes);
+              
               // Save persistently by item ID → always findable by ID, never lost on restart
-              final persistentAbsolutePath = await _imageStorageManager.saveCleanedGarment(item.id, bytes);
+              final persistentAbsolutePath = await _imageStorageManager.saveCleanedGarment(item.id, trimmedBytes);
               _cleanedGarmentsCache[item.id] = persistentAbsolutePath;
               
               // Also store relative path in DB for cross-device compatibility
@@ -1028,25 +1251,37 @@ class _TryOnScreenState extends State<TryOnScreen> {
       width: itemWidth,
       height: itemHeight,
       child: GestureDetector(
-        onPanUpdate: (details) {
+        onScaleStart: (details) {
+          _initialScales[item.id] = _clothingScales[item.id] ?? 1.0;
+          _initialRotations[item.id] = _clothingRotations[item.id] ?? 0.0;
+        },
+        onScaleUpdate: (details) {
           setState(() {
-            _clothingOffsets[item.id] = (_clothingOffsets[item.id] ?? Offset.zero) + details.delta;
+            _clothingOffsets[item.id] = (_clothingOffsets[item.id] ?? Offset.zero) + details.focalPointDelta;
+            _clothingScales[item.id] = (_initialScales[item.id] ?? 1.0) * details.scale;
+            _clothingRotations[item.id] = (_initialRotations[item.id] ?? 0.0) + details.rotation;
           });
         },
-        child: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(2, 4),
+        child: Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..scale(_clothingScales[item.id] ?? 1.0)
+            ..rotateZ(_clothingRotations[item.id] ?? 0.0),
+          child: Container(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(2, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Opacity(
-          opacity: 0.95, // Increased opacity for better realism on standardized model
-          child: _buildClothingImage(item, width: itemWidth, height: itemHeight),
-        ),
+            child: Opacity(
+              opacity: 0.95, // Increased opacity for better realism on standardized model
+              child: _buildClothingImage(item, width: itemWidth, height: itemHeight),
+            ),
+          ),
       ),
     ),
   );
@@ -1104,7 +1339,7 @@ class _TryOnScreenState extends State<TryOnScreen> {
     }
   }
 
-  /// Builds the image widget for a clothing item
+  /// Builds the image widgets for a clothing item
   Widget _buildClothingImage(ClothingItem item, {double? width, double? height}) {
     // Priority 1: cleaned image in memory cache
     if (_cleanedGarmentsCache.containsKey(item.id)) {
@@ -1350,6 +1585,12 @@ class _TryOnScreenState extends State<TryOnScreen> {
       if (pickedFile != null) {
         final storage = ImageStorageManager();
         final file = File(pickedFile.path);
+
+        // Delete old image if it's not a default asset
+        if (_basePhotoPath != null && !_basePhotoPath!.startsWith('assets/')) {
+           await storage.deleteImage(_basePhotoPath!);
+        }
+
         final originalRelativePath = await storage.saveImage(file);
         final originalAbsolutePath = await storage.getImagePath(originalRelativePath);
         
@@ -1394,6 +1635,10 @@ class _TryOnScreenState extends State<TryOnScreen> {
             _isStandardizingModel = false;
             _vtoLoadingStep = '';
           });
+          
+          // Save preference
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_basePhotoPrefKey, finalRelativePath);
         }
       }
     } catch (e) {
@@ -1468,9 +1713,109 @@ class _TryOnScreenState extends State<TryOnScreen> {
       builder: (context) => _ClothingSelectorBottomSheet(appState: appState),
     );
   }
+
+  // --- Scene Switcher UI & Logic ---
+  Widget _buildSceneSwitcher() {
+    return Container(
+      height: 70,
+      margin: const EdgeInsets.only(top: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _scenes.length,
+        itemBuilder: (context, index) {
+          final scene = _scenes[index];
+          final isSelected = (_selectedSceneUrl ?? '') == scene['asset'];
+          
+          return GestureDetector(
+            onTap: () => _handleSceneSelection(scene['asset']!, context),
+            child: Container(
+              margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: isSelected ? GoldFitTheme.primary : GoldFitTheme.surfaceLight,
+                border: Border.all(
+                  color: isSelected ? GoldFitTheme.gold600 : Colors.transparent,
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: isSelected ? [
+                  BoxShadow(
+                    color: GoldFitTheme.gold600.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ] : null,
+              ),
+              child: Center(
+                child: Text(
+                  scene['name']!,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : GoldFitTheme.textDark,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _handleSceneSelection(String url, BuildContext context) async {
+    setState(() {
+      _selectedSceneUrl = url;
+    });
+    
+    final appState = Provider.of<AppState>(context, listen: false);
+
+    if (url.isEmpty) return;
+
+    if (appState.tryOnMode == TryOnMode.quick && _basePhotoPath != null && _transparentBasePhotoPath == null) {
+      _removeBackgroundAsync(_basePhotoPath!, false);
+    } else if (appState.tryOnMode == TryOnMode.realistic && _realisticImagePath != null && _transparentRealisticImagePath == null) {
+      _removeBackgroundAsync(_realisticImagePath!, true);
+    } else if (appState.tryOnMode == TryOnMode.realistic && _realisticImagePath == null && _basePhotoPath != null && _transparentBasePhotoPath == null) {
+      _removeBackgroundAsync(_basePhotoPath!, false);
+    }
+  }
+
+  Future<void> _removeBackgroundAsync(String localPath, bool isRealistic) async {
+    setState(() {
+      _isStandardizingModel = true;
+      _vtoLoadingStep = 'Styling the background...';
+    });
+
+    try {
+      final absolutePath = await _imageStorageManager.getImagePath(localPath);
+      final cleanedBase64 = await _geminiService.removeBackground(absolutePath);
+      if (cleanedBase64 != null) {
+        final tempPath = await _imageStorageManager.saveTempImageFromBytes(base64Decode(cleanedBase64));
+        if (mounted) {
+          setState(() {
+            if (isRealistic) {
+              _transparentRealisticImagePath = tempPath;
+            } else {
+              _transparentBasePhotoPath = tempPath;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to remove background: \$e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isStandardizingModel = false;
+          _vtoLoadingStep = '';
+        });
+      }
+    }
+  }
 }
 
-/// Custom widget for mode toggle buttons
+/// Custom widgets for mode toggle buttons
 class _ModeToggleButton extends StatelessWidget {
   final String label;
   final bool isSelected;
@@ -1530,7 +1875,7 @@ class _OverlayPosition {
   });
 }
 
-/// Clothing selector bottom sheet widget
+/// Clothing selector bottom sheet widgets
 /// Displays a grid of wardrobe items with multi-select capability
 /// Requirements: 8.3, 8.4
 class _ClothingSelectorBottomSheet extends StatefulWidget {
@@ -1724,7 +2069,7 @@ class _ClothingSelectorBottomSheetState extends State<_ClothingSelectorBottomShe
             if (isSelected) {
               appState.deselectItemForTryOn(item.id);
             } else {
-              appState.selectItemForTryOn(item.id);
+              appState.selectItemForTryOn(item.id, item: item);
             }
           },
         );
@@ -1765,7 +2110,7 @@ class _ClothingSelectorBottomSheetState extends State<_ClothingSelectorBottomShe
   }
 }
 
-/// Individual clothing item selector widget with selection indicator
+/// Individual clothing item selector widgets with selection indicator
 class _ClothingItemSelector extends StatelessWidget {
   final ClothingItem item;
   final bool isSelected;
@@ -1905,3 +2250,4 @@ class _ClothingItemSelector extends StatelessWidget {
     }
   }
 }
+

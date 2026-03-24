@@ -60,6 +60,13 @@ class AppState extends ChangeNotifier {
   DateTime _selectedDate = DateTime.now();
 
   // ============================================================================
+  // Global Navigation State
+  // ============================================================================
+
+  /// Current active tab in AppShell
+  int _currentTab = 0;
+
+  // ============================================================================
   // Constructor
   // ============================================================================
 
@@ -152,6 +159,9 @@ class AppState extends ChangeNotifier {
 
   /// Returns the currently selected date.
   DateTime get selectedDate => _selectedDate;
+
+  /// Returns the current active tab index.
+  int get currentTab => _currentTab;
 
   // ============================================================================
   // Data Provider Access
@@ -256,8 +266,26 @@ class AppState extends ChangeNotifier {
   }
 
   /// Selects an item for try-on by adding its ID to the selection.
-  void selectItemForTryOn(String itemId) {
+  /// Enforces single item per category and caches item if missing.
+  void selectItemForTryOn(String itemId, {ClothingItem? item}) {
     if (!_selectedItemIds.contains(itemId)) {
+      // Find item to determine category rules
+      final resolvedItem = item ?? getItemById(itemId);
+      
+      if (resolvedItem != null) {
+        // 1. Remove any currently selected item of the same category
+        _selectedItemIds.removeWhere((id) {
+          final existingItem = getItemById(id);
+          return existingItem != null && existingItem.type == resolvedItem.type;
+        });
+
+        // 2. Keep cache updated with the selected item so it can be resolved by selectedTryOnItems
+        if (getItemById(resolvedItem.id) == null) {
+          _cachedItems.add(resolvedItem);
+        }
+      }
+
+      // 3. Add new selection
       _selectedItemIds.add(itemId);
       notifyListeners();
     }
@@ -303,6 +331,12 @@ class AppState extends ChangeNotifier {
   /// Sets the selected date in the planner.
   void selectDate(DateTime date) {
     _selectedDate = date;
+    notifyListeners();
+  }
+
+  /// Sets the active tab index.
+  void setTab(int index) {
+    _currentTab = index;
     notifyListeners();
   }
 

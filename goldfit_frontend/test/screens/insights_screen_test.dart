@@ -10,7 +10,7 @@ import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/widgets/clothing_item_card.dart';
 import 'package:goldfit_frontend/shared/utils/routes.dart';
 
-/// Tests for InsightsScreen widget with ViewModel
+/// Tests for InsightsScreen widgets with ViewModel
 /// 
 /// Validates: Requirements 10.1, 10.2, 10.3, 10.4, 14.3, 14.4
 void main() {
@@ -241,7 +241,7 @@ void main() {
       await tester.pump();
       await tester.pumpAndSettle();
 
-      // Verify the main content is in a scrollable widget
+      // Verify the main content is in a scrollable widgets
       expect(find.byType(SingleChildScrollView), findsOneWidget);
     });
   });

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/widgets/clothing_item_card.dart';
 
-/// Demo screen to showcase the ClothingItemCard widget.
+/// Demo screen to showcase the ClothingItemCard widgets.
 /// This is for development and testing purposes only.
 class ClothingItemCardDemo extends StatelessWidget {
   const ClothingItemCardDemo({super.key});

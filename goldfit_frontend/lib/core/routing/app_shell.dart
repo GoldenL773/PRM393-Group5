@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:goldfit_frontend/features/home/home_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:goldfit_frontend/shared/providers/app_state.dart';
 import 'package:goldfit_frontend/features/wardrobe/wardrobe_screen.dart';
 import 'package:goldfit_frontend/features/try_on/try_on_screen.dart';
 import 'package:goldfit_frontend/features/planner/planner_screen.dart';
@@ -17,7 +19,7 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _currentIndex = 0;
+  // Removed local _currentIndex to use AppState.currentTab
 
   // Main screens for bottom navigation
   final List<Widget> _screens = const [
@@ -29,20 +31,20 @@ class _AppShellState extends State<AppShell> {
   ];
 
   void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    context.read<AppState>().setTab(index);
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentTab = context.watch<AppState>().currentTab;
+
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentTab,
         children: _screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: currentTab,
         onTap: _onTabTapped,
         items: const [
           BottomNavigationBarItem(

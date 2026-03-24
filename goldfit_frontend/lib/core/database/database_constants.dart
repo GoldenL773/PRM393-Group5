@@ -6,7 +6,8 @@ library;
 class DatabaseConstants {
   // Database configuration
   static const String databaseName = 'goldfit.db';
-  static const int databaseVersion = 4;
+
+  static const int databaseVersion = 7;
 
   // Table names
   static const String tableClothingItems = 'clothing_items';
@@ -51,6 +52,9 @@ class DatabaseConstants {
 
   // outfit_calendar table columns
   static const String columnAssignedDate = 'assigned_date';
+  static const String columnTimeSlot = 'time_slot';
+  static const String columnEventName = 'event_name';
+  static const String columnStartTime = 'start_time';
 
   // usage_history table columns
   static const String columnWornDate = 'worn_date';
@@ -98,6 +102,34 @@ class DatabaseConstants {
       'idx_collection_items_collection';
   static const String indexCollectionItemsItem = 'idx_collection_items_item';
 
+  // Add to existing DatabaseConstants class:
+
+// Table names
+  static const String tableUsers = 'users';
+  static const String tableUserSessions = 'user_sessions';
+
+// users table columns
+  static const String columnUserId = 'user_id';
+  static const String columnEmail = 'email';
+  static const String columnDisplayName = 'display_name';
+  static const String columnPhotoUrl = 'photo_url';
+  static const String columnAuthProvider = 'auth_provider';
+  static const String columnLastLoginAt = 'last_login_at';
+  static const String columnEmailVerified = 'email_verified';
+  static const String columnPasswordHash = 'password_hash';
+
+// user_sessions table columns
+  static const String columnSessionId = 'session_id';
+  static const String columnSessionToken = 'session_token';
+  static const String columnExpiresAt = 'expires_at';
+  static const String columnIsRevoked = 'is_revoked';
+
+// Index names
+  static const String indexUsersEmail = 'idx_users_email';
+  static const String indexUsersProvider = 'idx_users_provider';
+  static const String indexSessionsUser = 'idx_sessions_user';
+  static const String indexSessionsToken = 'idx_sessions_token';
+  static const String indexSessionsExpiry = 'idx_sessions_expiry';
   // Prevent instantiation
   DatabaseConstants._();
 }

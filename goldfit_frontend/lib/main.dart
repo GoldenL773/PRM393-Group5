@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:goldfit_frontend/shared/utils/theme_background.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:goldfit_frontend/core/routing/app_shell.dart';
@@ -33,22 +34,36 @@ import 'package:goldfit_frontend/features/home/home_viewmodel.dart';
 import 'package:goldfit_frontend/features/home/recommendations_viewmodel.dart';
 import 'package:goldfit_frontend/features/favorites/favorites_viewmodel.dart';
 import 'package:goldfit_frontend/features/favorites/favorites_screen.dart';
+import 'package:goldfit_frontend/features/home/settings_screen.dart';
 
 import 'package:goldfit_frontend/features/debug/debug_log_viewer_screen.dart';
+
+// Authentication imports
+import 'package:goldfit_frontend/features/auth/auth_viewmodel.dart';
+import 'package:goldfit_frontend/features/auth/auth_screen.dart';
+import 'package:goldfit_frontend/shared/repositories/auth_repository.dart';
+import 'package:goldfit_frontend/shared/repositories/auth_repository_impl.dart';
 
 void main() async {
   // Ensure Flutter bindings are initialized before async operations
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('DEBUG: Flutter bindings initialized');
 
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
+  try {
+    // Load environment variables
+    debugPrint('DEBUG: Loading .env...');
+    await dotenv.load(fileName: ".env");
+    debugPrint('DEBUG: .env loaded successfully');
 
   // Initialize database factory for the current platform
   await initializeDatabaseFactory();
 
   // Initialize database
+  debugPrint('DEBUG: Initializing DatabaseManager...');
   final dbManager = DatabaseManager();
+  debugPrint('DEBUG: Getting database instance (may trigger migrations)...');
   await dbManager.database; // Ensure database is initialized
+  debugPrint('DEBUG: Database initialized successfully');
 
   // Create repository instances
   final clothingRepo = ClothingRepositoryImpl(dbManager);
@@ -56,27 +71,54 @@ void main() async {
   final analyticsRepo = AnalyticsRepositoryImpl(dbManager);
   final collectionRepo = CollectionRepositoryImpl(dbManager);
 
-  // Initialize and run data migration if needed
-  // migrateIfNeeded only runs once (checks a flag in DB). User data is preserved.
-  final mockDataProvider = MockDataProvider();
-  final migrationService = DataMigrationService(
-    dbManager,
-    clothingRepo,
-    outfitRepo,
-  );
-  await migrationService.migrateIfNeeded(mockDataProvider);
+    // Create auth repository with database
+    final authRepo = AuthRepositoryImpl(dbManager);
 
-  runApp(
-    GoldFitApp(
-      clothingRepository: clothingRepo,
-      outfitRepository: outfitRepo,
-      analyticsRepository: analyticsRepo,
-      collectionRepository: collectionRepo,
-    ),
-  );
+    // Initialize and run data migration if needed
+    debugPrint('DEBUG: Starting data migration check...');
+    final mockDataProvider = MockDataProvider();
+    final migrationService = DataMigrationService(
+      dbManager,
+      clothingRepo,
+      outfitRepo,
+    );
+    await migrationService.migrateIfNeeded(mockDataProvider);
+    debugPrint('DEBUG: Data migration check/execution finished');
+
+    debugPrint('DEBUG: Calling runApp...');
+    runApp(
+      GoldFitApp(
+        authRepository: authRepo,
+        clothingRepository: clothingRepo,
+        outfitRepository: outfitRepo,
+        analyticsRepository: analyticsRepo,
+        collectionRepository: collectionRepo,
+      ),
+    );
+  } catch (e, stackTrace) {
+    debugPrint('DEBUG: FATAL ERROR during startup: $e');
+    debugPrint('DEBUG: StackTrace: $stackTrace');
+
+    // Fallback to show error in app if possible, or at least keep log visible
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              'Failed to start GoldFit:\n$e',
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    ));
+  }
 }
 
 class GoldFitApp extends StatelessWidget {
+  final AuthRepository authRepository;
   final ClothingRepository clothingRepository;
   final OutfitRepository outfitRepository;
   final AnalyticsRepository analyticsRepository;
@@ -84,6 +126,7 @@ class GoldFitApp extends StatelessWidget {
 
   const GoldFitApp({
     super.key,
+    required this.authRepository,
     required this.clothingRepository,
     required this.outfitRepository,
     required this.analyticsRepository,
@@ -94,11 +137,24 @@ class GoldFitApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Auth Repository and ViewModel
+        Provider<AuthRepository>.value(value: authRepository),
+        ChangeNotifierProvider(
+          create: (context) => AuthViewModel(
+            context.read<AuthRepository>(),
+          ),
+        ),
+
         // Repositories
         Provider<ClothingRepository>.value(value: clothingRepository),
         Provider<OutfitRepository>.value(value: outfitRepository),
         Provider<AnalyticsRepository>.value(value: analyticsRepository),
         Provider<CollectionRepository>.value(value: collectionRepository),
+
+        //Background theme
+        ChangeNotifierProvider(
+          create: (_) => ThemeBackgroundApp(),
+        ),
 
         // ViewModels
         ChangeNotifierProvider(
@@ -136,21 +192,37 @@ class GoldFitApp extends StatelessWidget {
         ),
         Provider<NavigationManager>(create: (_) => NavigationManager()),
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'GoldFit',
-        theme: GoldFitTheme.lightTheme,
-        home: const AppShell(),
-        routes: {
-          AppRoutes.itemDetail: (context) => const ItemDetailScreen(),
-          AppRoutes.editItem: (context) => const EditClothingScreen(),
-          AppRoutes.tryOn: (context) => const TryOnScreen(),
-          AppRoutes.styling: (context) => const StylingScreen(),
-          AppRoutes.recommendations: (context) => const RecommendationsScreen(),
-          AppRoutes.favorites: (context) => const FavoritesScreen(),
-          AppRoutes.debugLogs: (context) => const DebugLogViewerScreen(),
-          AppRoutes.collectionEditor: (context) =>
-              const CollectionEditorScreen(),
+      child: Consumer2<AuthViewModel, ThemeBackgroundApp>(
+        builder: (context, authVm, themeProvider, _) {
+          return MaterialApp(
+            title: 'GoldFit',
+            theme: GoldFitTheme.lightTheme,
+            darkTheme: GoldFitTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: authVm.isLoading
+                ? const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFC5A028),
+                      ),
+                    ),
+                  )
+                : authVm.isAuthenticated
+                    ? const AppShell()
+                    : const AuthScreen(),
+            routes: {
+              AppRoutes.itemDetail: (context) => const ItemDetailScreen(),
+              AppRoutes.editItem: (context) => const EditClothingScreen(),
+              AppRoutes.tryOn: (context) => const TryOnScreen(),
+              AppRoutes.styling: (context) => const StylingScreen(),
+              AppRoutes.recommendations: (context) => const RecommendationsScreen(),
+              AppRoutes.favorites: (context) => const FavoritesScreen(),
+              AppRoutes.settings: (context) => const SettingsScreen(),
+              AppRoutes.debugLogs: (context) => const DebugLogViewerScreen(),
+              AppRoutes.auth: (context) => const AuthScreen(),
+              AppRoutes.collectionEditor: (context) => const CollectionEditorScreen(),
+            },
+          );
         },
       ),
     );

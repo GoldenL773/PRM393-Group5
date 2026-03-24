@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 
-/// A card widget that displays an analytics metric with title, value, and icon.
+/// A card widgets that displays an analytics metric with title, value, and icon.
 /// 
-/// This widget is used on the Insights screen to display wardrobe analytics
+/// This widgets is used on the Insights screen to display wardrobe analytics
 /// such as total items, total value, and other metrics. It follows the card
 /// styling from the theme with a clean, modern design.
 /// 

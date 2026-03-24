@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:goldfit_frontend/core/storage/image_storage_manager.dart';
 
-class LocalImageWidget extends StatelessWidget {
+class LocalImageWidget extends StatefulWidget {
   final String imagePath;
   final BoxFit fit;
   final double? width;
@@ -17,19 +17,50 @@ class LocalImageWidget extends StatelessWidget {
   });
 
   @override
+  State<LocalImageWidget> createState() => _LocalImageWidgetState();
+}
+
+class _LocalImageWidgetState extends State<LocalImageWidget> {
+  late Future<String> _imagePathFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant LocalImageWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imagePath != widget.imagePath) {
+      _initFuture();
+    }
+  }
+
+  void _initFuture() {
+    if (!widget.imagePath.startsWith('http') &&
+        !widget.imagePath.startsWith('assets/') &&
+        widget.imagePath.isNotEmpty) {
+      _imagePathFuture = ImageStorageManager().getImagePath(widget.imagePath);
+    } else {
+      _imagePathFuture = Future.value(widget.imagePath);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Determine the actual width and height to use based on constraints
     return LayoutBuilder(
       builder: (context, constraints) {
         // We need to resolve double.infinity to a concrete size if possible,
         // or allow the image to size itself naturally if constraints are unbounded.
-        double? effectiveWidth = width;
-        double? effectiveHeight = height;
+        double? effectiveWidth = widget.width;
+        double? effectiveHeight = widget.height;
 
-        if (width == double.infinity) {
+        if (widget.width == double.infinity) {
           effectiveWidth = constraints.hasBoundedWidth ? constraints.maxWidth : null;
         }
-        if (height == double.infinity) {
+        if (widget.height == double.infinity) {
           effectiveHeight = constraints.hasBoundedHeight ? constraints.maxHeight : null;
         }
 
@@ -39,20 +70,20 @@ class LocalImageWidget extends StatelessWidget {
   }
 
   Widget _buildImage(double? effectiveWidth, double? effectiveHeight) {
-    if (imagePath.startsWith('http')) {
+    if (widget.imagePath.startsWith('http')) {
       return Image.network(
-        imagePath,
-        fit: fit,
+        widget.imagePath,
+        fit: widget.fit,
         width: effectiveWidth,
         height: effectiveHeight,
         errorBuilder: (context, error, stackTrace) => const _ImageError(),
       );
     }
     
-    if (imagePath.startsWith('assets/')) {
+    if (widget.imagePath.startsWith('assets/')) {
       return Image.asset(
-        imagePath,
-        fit: fit,
+        widget.imagePath,
+        fit: widget.fit,
         width: effectiveWidth,
         height: effectiveHeight,
         errorBuilder: (context, error, stackTrace) => const _ImageError(),
@@ -61,7 +92,7 @@ class LocalImageWidget extends StatelessWidget {
 
     // It's a local file stored by ImageStorageManager
     return FutureBuilder<String>(
-      future: ImageStorageManager().getImagePath(imagePath),
+      future: _imagePathFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -73,7 +104,7 @@ class LocalImageWidget extends StatelessWidget {
         final file = File(snapshot.data!);
         return Image.file(
           file,
-          fit: fit,
+          fit: widget.fit,
           width: effectiveWidth,
           height: effectiveHeight,
           errorBuilder: (context, error, stackTrace) => const _ImageError(),

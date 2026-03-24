@@ -85,25 +85,40 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
 
   Widget _buildAiAdvice(String advice) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: GoldFitTheme.yellow100,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: GoldFitTheme.yellow200),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: GoldFitTheme.gold600.withOpacity(0.15), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: GoldFitTheme.gold600.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.tips_and_updates, color: GoldFitTheme.gold600),
-          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: GoldFitTheme.yellow200.withOpacity(0.5),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.auto_awesome, color: GoldFitTheme.gold600, size: 20),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               advice,
               style: const TextStyle(
                 color: GoldFitTheme.textDark,
-                fontSize: 14,
-                height: 1.4,
+                fontSize: 15,
+                height: 1.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -137,13 +152,13 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
     NavigationManager navigationManager,
   ) {
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       itemCount: recommendations.length,
       itemBuilder: (context, index) {
         final outfit = recommendations[index];
         final items = viewModel.recommendationItems[outfit.id] ?? [];
         return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.only(bottom: 24),
           child: OutfitCard(
             outfit: outfit,
             items: items,
@@ -156,24 +171,25 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
 
   Widget _buildHeader(String? vibe, String? eventDescription) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             vibe != null ? 'Perfect for $vibe' : 'Custom Recommendations',
             style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
               color: GoldFitTheme.textDark,
+              letterSpacing: -0.5,
             ),
           ),
           if (eventDescription != null)
             Padding(
-              padding: const EdgeInsets.only(top: 4.0),
+              padding: const EdgeInsets.only(top: 8.0),
               child: Text(
                 'For: $eventDescription',
-                style: const TextStyle(fontSize: 14, color: GoldFitTheme.textMedium),
+                style: const TextStyle(fontSize: 16, color: GoldFitTheme.textMedium, fontWeight: FontWeight.w500),
               ),
             ),
         ],

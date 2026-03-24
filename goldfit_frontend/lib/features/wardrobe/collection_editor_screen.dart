@@ -265,10 +265,11 @@ class _CollectionEditorScreenState extends State<CollectionEditorScreen> {
 
       if (!mounted) return;
       navigator.pop(true);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('UI ERROR saving collection: $e');
       if (!mounted) return;
       messenger.showSnackBar(
-        const SnackBar(content: Text('Failed to save collection')),
+        SnackBar(content: Text('Failed to save collection: $e')),
       );
     } finally {
       if (mounted) {

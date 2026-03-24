@@ -325,7 +325,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // The GridView automatically preserves scroll position through its key
-        // We just verify the widget rebuilds successfully
+        // We just verify the widgets rebuilds successfully
         expect(find.byType(GridView), findsOneWidget);
       }
     });

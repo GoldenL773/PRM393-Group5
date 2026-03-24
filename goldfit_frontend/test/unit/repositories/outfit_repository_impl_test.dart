@@ -193,7 +193,7 @@ void main() {
 
       // Assign to past date
       final pastDate = DateTime.now().subtract(const Duration(days: 7));
-      await outfitRepository.assignToDate('outfit1', pastDate);
+      await outfitRepository.assignToDate('outfit1', pastDate, 'morning');
 
       // Verify usage_history record was created
       final usageRecords = await db.query(
@@ -242,7 +242,7 @@ void main() {
 
       // Assign to future date
       final futureDate = DateTime.now().add(const Duration(days: 7));
-      await outfitRepository.assignToDate('outfit1', futureDate);
+      await outfitRepository.assignToDate('outfit1', futureDate, 'morning');
 
       // Verify no usage_history record was created
       final usageRecords = await db.query(
@@ -289,7 +289,7 @@ void main() {
 
       // Assign to today
       final today = DateTime.now();
-      await outfitRepository.assignToDate('outfit1', today);
+      await outfitRepository.assignToDate('outfit1', today, 'morning');
 
       // Verify no usage_history record was created
       final usageRecords = await db.query(

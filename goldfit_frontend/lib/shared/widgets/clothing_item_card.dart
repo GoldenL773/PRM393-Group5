@@ -3,9 +3,9 @@ import 'package:goldfit_frontend/shared/models/clothing_item.dart';
 import 'package:goldfit_frontend/shared/utils/theme.dart';
 import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 
-/// A card widget that displays a clothing item thumbnail with border and shadow.
+/// A card widgets that displays a clothing item thumbnail with border and shadow.
 /// 
-/// This widget is used in grid views to show clothing items from the wardrobe.
+/// This widgets is used in grid views to show clothing items from the wardrobe.
 /// It displays the item's image with a subtle border and shadow effect, and
 /// handles tap gestures to navigate to the item detail screen.
 /// 
@@ -13,11 +13,13 @@ import 'package:goldfit_frontend/shared/widgets/local_image_widget.dart';
 class ClothingItemCard extends StatelessWidget {
   final ClothingItem item;
   final VoidCallback onTap;
+  final VoidCallback? onFavoriteToggle;
 
   const ClothingItemCard({
     super.key,
     required this.item,
     required this.onTap,
+    this.onFavoriteToggle,
   });
 
   @override
@@ -47,6 +49,37 @@ class ClothingItemCard extends StatelessWidget {
               // Clothing item image
               _buildImage(),
               
+              // Favorite button
+              if (onFavoriteToggle != null)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () {
+                      onFavoriteToggle?.call();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        item.isFavorite ? Icons.favorite : Icons.favorite_border,
+                        size: 20,
+                        color: item.isFavorite ? Colors.red : GoldFitTheme.textLight,
+                      ),
+                    ),
+                  ),
+                ),
+
               // Optional hover overlay with item details
               // This will be visible on hover for web/desktop platforms
               Positioned.fill(
@@ -77,7 +110,7 @@ class ClothingItemCard extends StatelessWidget {
     );
   }
 
-  /// Builds the image widget for the clothing item.
+  /// Builds the image widgets for the clothing item.
   /// 
   /// If the imageUrl starts with 'assets/' or 'images/', it uses LocalImageWidget.
   /// Otherwise, it displays a colored placeholder with an icon.

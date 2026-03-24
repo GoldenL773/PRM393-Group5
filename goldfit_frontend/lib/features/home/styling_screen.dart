@@ -76,10 +76,12 @@ class _StylingScreenState extends State<StylingScreen> {
             // Header
             Text(
               'What\'s the vibe today?',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: GoldFitTheme.textDark,
-                  ),
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: GoldFitTheme.textDark,
+                letterSpacing: -0.5,
+              ),
             ),
             const SizedBox(height: 32),
 
@@ -118,29 +120,79 @@ class _StylingScreenState extends State<StylingScreen> {
             const SizedBox(height: 32),
 
             // Custom event description
-            Text(
+            const Text(
               'Describe your event',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: GoldFitTheme.textDark,
-                  ),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: GoldFitTheme.textDark,
+                letterSpacing: -0.2,
+              ),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _eventController,
-              decoration: const InputDecoration(
-                hintText: 'e.g., "Brunch with friends" or "Job interview"',
+            Container(
+              decoration: BoxDecoration(
+                color: GoldFitTheme.surfaceLight,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: GoldFitTheme.yellow100, width: 1.5),
               ),
-              maxLines: 3,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _handleTextSubmit(),
+              child: TextField(
+                controller: _eventController,
+                style: const TextStyle(fontSize: 16, color: GoldFitTheme.textDark),
+                decoration: InputDecoration(
+                  hintText: 'e.g., "Brunch with friends" or "Job interview"',
+                  hintStyle: TextStyle(color: GoldFitTheme.textLight.withOpacity(0.5)),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                ),
+                maxLines: 3,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _handleTextSubmit(),
+              ),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
+            const SizedBox(height: 32),
+            
+            // Get Recommendations button
+            Container(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _handleTextSubmit,
-                child: const Text('Get Recommendations'),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                gradient: const LinearGradient(
+                  colors: [GoldFitTheme.primary, GoldFitTheme.yellow200],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: GoldFitTheme.primary.withOpacity(0.35),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(30),
+                  onTap: _handleTextSubmit,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text(
+                          'Get Recommendations',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -150,7 +202,7 @@ class _StylingScreenState extends State<StylingScreen> {
   }
 }
 
-/// Vibe card widget for predefined vibe options
+/// Vibe card widgets for predefined vibe options
 class _VibeCard extends StatelessWidget {
   final String name;
   final IconData icon;
@@ -168,62 +220,75 @@ class _VibeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: isSelected ? 4 : 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isSelected ? GoldFitTheme.primary : const Color(0xFFF1F5F9),
-          width: isSelected ? 2 : 1,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isSelected ? GoldFitTheme.gold600 : GoldFitTheme.yellow100.withOpacity(0.3),
+          width: isSelected ? 2.0 : 1.0,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isSelected ? GoldFitTheme.gold600.withOpacity(0.15) : Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: GoldFitTheme.yellow100,
-                  borderRadius: BorderRadius.circular(12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: GoldFitTheme.yellow200.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 28,
+                    color: GoldFitTheme.gold600,
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  size: 32,
-                  color: GoldFitTheme.gold600,
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: GoldFitTheme.textDark,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: GoldFitTheme.textMedium,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: GoldFitTheme.textDark,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: GoldFitTheme.textMedium,
-                          ),
-                    ),
-                  ],
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 18,
+                  color: isSelected ? GoldFitTheme.gold600 : GoldFitTheme.textLight.withOpacity(0.5),
                 ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 20,
-                color: isSelected ? GoldFitTheme.gold600 : GoldFitTheme.textLight,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -3,11 +3,13 @@
 class AppRoutes {
   // Main navigation routes (bottom tabs)
   static const String home = '/';
+  static const String auth = '/auth';
   static const String wardrobe = '/wardrobe';
   static const String tryOn = '/try-on';
   static const String planner = '/planner';
   static const String insights = '/insights';
-
+  static const String settings = '/settings';
+  
   // Detail and secondary routes
   static const String itemDetail = '/item-detail';
   static const String editItem = '/edit-item';

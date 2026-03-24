@@ -83,7 +83,7 @@ class DatabaseSeeder {
       await _outfitRepository.create(outfit);
 
       if (outfit.assignedDate != null) {
-        await _outfitRepository.assignToDate(outfit.id, outfit.assignedDate!);
+        await _outfitRepository.assignToDate(outfit.id, outfit.assignedDate!, 'morning');
       }
     }
   }

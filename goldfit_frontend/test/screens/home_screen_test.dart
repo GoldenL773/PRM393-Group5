@@ -85,10 +85,10 @@ class MockOutfitRepository implements OutfitRepository {
   }
 
   @override
-  Future<void> assignToDate(String outfitId, DateTime date) async {}
+  Future<void> assignToDate(String outfitId, DateTime date, String timeSlot, {String? eventName, String? startTime}) async {}
 
   @override
-  Future<void> unassignFromDate(DateTime date) async {}
+  Future<void> unassignFromDate(DateTime date, String timeSlot) async {}
 
   @override
   Future<List<Outfit>> getByDate(DateTime date) async {
@@ -194,10 +194,10 @@ void main() {
       );
     }
 
-    testWidgets('displays weather widget on load', (WidgetTester tester) async {
+    testWidgets('displays weather widgets on load', (WidgetTester tester) async {
       await tester.pumpWidget(createTestWidget());
 
-      // Wait for the widget to build
+      // Wait for the widgets to build
       await tester.pumpAndSettle();
 
       // Verify weather information is displayed

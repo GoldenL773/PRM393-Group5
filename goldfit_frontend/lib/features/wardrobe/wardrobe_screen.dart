@@ -66,6 +66,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         );
 
         return Scaffold(
+
           backgroundColor: GoldFitTheme.backgroundLight,
           appBar: AppBar(
             title: const Text('Wardrobe'),

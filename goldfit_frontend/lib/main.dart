@@ -137,6 +137,7 @@ class GoldFitApp extends StatelessWidget {
         Provider<NavigationManager>(create: (_) => NavigationManager()),
       ],
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         title: 'GoldFit',
         theme: GoldFitTheme.lightTheme,
         home: const AppShell(),

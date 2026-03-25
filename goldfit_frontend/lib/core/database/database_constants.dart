@@ -7,7 +7,7 @@ class DatabaseConstants {
   // Database configuration
   static const String databaseName = 'goldfit.db';
 
-  static const int databaseVersion = 7;
+  static const int databaseVersion = 8;
 
   // Table names
   static const String tableClothingItems = 'clothing_items';

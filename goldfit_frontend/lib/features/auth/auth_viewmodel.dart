@@ -165,9 +165,15 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<void> signOut() async {
     _setLoading(true);
-    await _authRepository.signOut();
-    _currentUser = null;
-    _setLoading(false);
+    try {
+      await _authRepository.signOut();
+      _currentUser = null;
+      _error = null;
+      _setLoading(false);
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+    }
   }
 
   void _setLoading(bool loading) {
@@ -183,5 +189,27 @@ class AuthViewModel extends ChangeNotifier {
   void _clearError() {
     _error = null;
     notifyListeners();
+  }
+  // Thêm phương thức này vào class AuthViewModel
+
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final success = await _authRepository.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+
+      _setLoading(false);
+      return success;
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    }
   }
 }

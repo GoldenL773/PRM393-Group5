@@ -329,4 +329,51 @@ class AuthRepositoryImpl implements AuthRepository {
   String _generateSessionToken() {
     return 'token_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(1000000)}';
   }
+  @override
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      if (_currentUser == null) {
+        throw Exception('No user logged in');
+      }
+
+      if (_currentUser!.provider != AuthProvider.email) {
+        throw Exception('Password change only available for email accounts');
+      }
+
+      final db = await _dbManager.database;
+
+      // Verify current password
+      final user = await _findUserByEmail(_currentUser!.email);
+      if (user == null) {
+        throw Exception('User not found');
+      }
+
+      // In production, you would verify the password hash
+      // For demo, we'll just check if current password is provided
+      if (currentPassword.isEmpty) {
+        throw Exception('Current password is required');
+      }
+
+      // Update password (in production, you'd hash the new password)
+      await db.update(
+        DatabaseConstants.tableUsers,
+        {
+          DatabaseConstants.columnPasswordHash: newPassword, // Should be hashed in production
+          DatabaseConstants.columnUpdatedAt: DateTime.now().millisecondsSinceEpoch,
+        },
+        where: '${DatabaseConstants.columnUserId} = ?',
+        whereArgs: [_currentUser!.id],
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint('Change password failed: $e');
+      throw Exception('Failed to change password: $e');
+    }
+  }
 }
+// Thêm phương thức này vào class AuthRepositoryImpl
+

@@ -13,4 +13,8 @@ abstract class AuthRepository {
   Future<bool> validateSession(String sessionToken);
   Future<void> revokeSession(String sessionToken);
   Stream<UserModel?> get authStateChanges;
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }

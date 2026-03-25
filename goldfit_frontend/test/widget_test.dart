@@ -135,6 +135,24 @@ class MockAuthRepository implements AuthRepository {
     // TODO: implement updateUser
     throw UnimplementedError();
   }
+
+  @override
+  Future<UserModel?> updateEmail(String userId, String newEmail) {
+    // TODO: implement updateEmail
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> updatePassword(String userId, String currentPassword, String newPassword) {
+    // TODO: implement updatePassword
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> changePassword({required String currentPassword, required String newPassword}) {
+    // TODO: implement changePassword
+    throw UnimplementedError();
+  }
 }
 
 class MockCollectionRepository implements CollectionRepository {
@@ -292,7 +310,7 @@ REMOVE_BG_API_KEY=
       authRepository: mockAuthRepo,
       analyticsRepository: MockAnalyticsRepository(),
       clothingRepository: MockClothingRepository(),
-      outfitRepository: MockOutfitRepository(),
+      outfitRepository: MockOutfitRepository(), collectionRepository: null,
     ));
 
     await tester.pumpAndSettle();

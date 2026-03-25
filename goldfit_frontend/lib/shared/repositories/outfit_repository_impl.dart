@@ -408,52 +408,6 @@ class OutfitRepositoryImpl implements OutfitRepository {
   }
 
   @override
-  Future<List<Outfit>> getByDate(DateTime date) async {
-    final db = await _dbManager.database;
-
-    try {
-      // Normalize date to midnight
-      final normalizedDate = DateTime(date.year, date.month, date.day);
-
-      // Join outfit_calendar and outfits tables
-      final results = await db.rawQuery('''
-        SELECT o.* FROM ${DatabaseConstants.tableOutfits} o
-        INNER JOIN ${DatabaseConstants.tableOutfitCalendar} oc
-        ON o.${DatabaseConstants.columnId} = oc.${DatabaseConstants.columnOutfitId}
-        WHERE oc.${DatabaseConstants.columnAssignedDate} = ?
-      ''', [normalizedDate.millisecondsSinceEpoch]);
-
-      final outfits = <Outfit>[];
-      for (final outfitMap in results) {
-        final outfitId = outfitMap[DatabaseConstants.columnId] as String;
-
-        // Query outfit_items for this outfit
-        final itemResults = await db.query(
-          DatabaseConstants.tableOutfitItems,
-          where: '${DatabaseConstants.columnOutfitId} = ?',
-          whereArgs: [outfitId],
-          orderBy: DatabaseConstants.columnLayerOrder,
-        );
-
-        final itemIds = itemResults
-            .map((row) => row[DatabaseConstants.columnClothingItemId] as String)
-            .toList();
-
-        outfits.add(_fromMap(outfitMap, itemIds));
-      }
-
-      return outfits;
-    } catch (e, stackTrace) {
-      ErrorLogger.log('Failed to get outfits by date: $e', context: 'OutfitRepository.query', error: e, stackTrace: stackTrace);
-      throw db_exceptions.DatabaseException(
-      'Failed to get outfits by date: $e',
-      operation: 'query',
-        cause: e,
-      );
-    }
-  }
-
-  @override
   Future<List<Outfit>> getByDateRange(DateTime start, DateTime end) async {
     final db = await _dbManager.database;
 
@@ -462,16 +416,16 @@ class OutfitRepositoryImpl implements OutfitRepository {
       final normalizedStart = DateTime(start.year, start.month, start.day);
       final normalizedEnd = DateTime(end.year, end.month, end.day);
 
-      // Join outfit_calendar and outfits tables
+      // SỬA: "outftis" -> "outfits"
       final results = await db.rawQuery('''
-        SELECT o.*, oc.${DatabaseConstants.columnAssignedDate}, oc.${DatabaseConstants.columnTimeSlot}, oc.${DatabaseConstants.columnEventName}, oc.${DatabaseConstants.columnStartTime}
-        FROM ${DatabaseConstants.tableOutfits} o
-        INNER JOIN ${DatabaseConstants.tableOutfitCalendar} oc
-        ON o.${DatabaseConstants.columnId} = oc.${DatabaseConstants.columnOutfitId}
-        WHERE oc.${DatabaseConstants.columnAssignedDate} >= ?
-        AND oc.${DatabaseConstants.columnAssignedDate} <= ?
-        ORDER BY oc.${DatabaseConstants.columnAssignedDate} ASC
-      ''', [normalizedStart.millisecondsSinceEpoch, normalizedEnd.millisecondsSinceEpoch]);
+      SELECT o.*, oc.${DatabaseConstants.columnAssignedDate}, oc.${DatabaseConstants.columnTimeSlot}, oc.${DatabaseConstants.columnEventName}, oc.${DatabaseConstants.columnStartTime}
+      FROM ${DatabaseConstants.tableOutfits} o
+      INNER JOIN ${DatabaseConstants.tableOutfitCalendar} oc
+      ON o.${DatabaseConstants.columnId} = oc.${DatabaseConstants.columnOutfitId}
+      WHERE oc.${DatabaseConstants.columnAssignedDate} >= ?
+      AND oc.${DatabaseConstants.columnAssignedDate} <= ?
+      ORDER BY oc.${DatabaseConstants.columnAssignedDate} ASC
+    ''', [normalizedStart.millisecondsSinceEpoch, normalizedEnd.millisecondsSinceEpoch]);
 
       final outfits = <Outfit>[];
       for (final outfitMap in results) {
@@ -504,8 +458,63 @@ class OutfitRepositoryImpl implements OutfitRepository {
     } catch (e, stackTrace) {
       ErrorLogger.log('Failed to get outfits by date range: $e', context: 'OutfitRepository.query', error: e, stackTrace: stackTrace);
       throw db_exceptions.DatabaseException(
-      'Failed to get outfits by date range: $e',
-      operation: 'query',
+        'Failed to get outfits by date range: $e',
+        operation: 'query',
+        cause: e,
+      );
+    }
+  }
+
+  @override
+  Future<List<Outfit>> getByDate(DateTime date) async {
+    final db = await _dbManager.database;
+
+    try {
+      // Normalize date to midnight
+      final normalizedDate = DateTime(date.year, date.month, date.day);
+
+      // SỬA: "outftis" -> "outfits"
+      final results = await db.rawQuery('''
+      SELECT o.*, oc.${DatabaseConstants.columnAssignedDate}, oc.${DatabaseConstants.columnTimeSlot}, oc.${DatabaseConstants.columnEventName}, oc.${DatabaseConstants.columnStartTime}
+      FROM ${DatabaseConstants.tableOutfits} o
+      INNER JOIN ${DatabaseConstants.tableOutfitCalendar} oc
+      ON o.${DatabaseConstants.columnId} = oc.${DatabaseConstants.columnOutfitId}
+      WHERE oc.${DatabaseConstants.columnAssignedDate} = ?
+      ORDER BY oc.${DatabaseConstants.columnAssignedDate} ASC
+    ''', [normalizedDate.millisecondsSinceEpoch]);
+
+      final outfits = <Outfit>[];
+      for (final outfitMap in results) {
+        final outfitId = outfitMap[DatabaseConstants.columnId] as String;
+
+        // Query outfit_items for this outfit
+        final itemResults = await db.query(
+          DatabaseConstants.tableOutfitItems,
+          where: '${DatabaseConstants.columnOutfitId} = ?',
+          whereArgs: [outfitId],
+          orderBy: DatabaseConstants.columnLayerOrder,
+        );
+
+        final itemIds = itemResults
+            .map((row) => row[DatabaseConstants.columnClothingItemId] as String)
+            .toList();
+
+        final assignedDate = DateTime.fromMillisecondsSinceEpoch(
+          outfitMap[DatabaseConstants.columnAssignedDate] as int,
+        );
+        final timeSlot = outfitMap[DatabaseConstants.columnTimeSlot] as String?;
+        final eventName = outfitMap[DatabaseConstants.columnEventName] as String?;
+        final startTime = outfitMap[DatabaseConstants.columnStartTime] as String?;
+
+        outfits.add(_fromMap(outfitMap, itemIds, assignedDate: assignedDate, timeSlot: timeSlot, eventName: eventName, startTime: startTime));
+      }
+
+      return outfits;
+    } catch (e, stackTrace) {
+      ErrorLogger.log('Failed to get outfits by date: $e', context: 'OutfitRepository.query', error: e, stackTrace: stackTrace);
+      throw db_exceptions.DatabaseException(
+        'Failed to get outfits by date: $e',
+        operation: 'query',
         cause: e,
       );
     }

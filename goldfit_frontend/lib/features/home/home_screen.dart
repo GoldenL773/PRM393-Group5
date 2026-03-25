@@ -42,6 +42,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final authVm = Provider.of<AuthViewModel>(context, listen: true);
     final user = authVm.currentUser;
 
+    if (user == null && !authVm.isLoading) {
+      // Chuyển hướng về auth screen nếu không có user
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
+      });
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFC5A028),
+          ),
+        ),
+      );
+    }
+
     return Consumer<HomeViewModel>(
       builder: (context, viewModel, child) {
         final recommendations = viewModel.recommendations;
@@ -199,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showLogoutDialog(BuildContext context, AuthViewModel authVm) {
     showDialog(
       context: context,
+      barrierDismissible: false, // Không cho phép tắt dialog khi đang xử lý
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(32),
@@ -229,9 +244,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context); // Close dialog
+              // Đóng dialog ngay lập tức
+              Navigator.pop(context);
 
-              // Show loading indicator
+              // Hiển thị loading
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -242,11 +258,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
 
+              // Thực hiện logout
               await authVm.signOut();
 
+              // Đóng loading
               if (context.mounted) {
-                Navigator.pop(context); // Close loading
-                Navigator.pushReplacementNamed(context, '/auth');
+                Navigator.pop(context);
+              }
+
+              // Sử dụng pushReplacementNamed để thay thế toàn bộ stack
+              if (context.mounted) {
+                // Đảm bảo xóa toàn bộ history
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/auth',
+                      (route) => false, // Xóa tất cả các route cũ
+                );
               }
             },
             style: ElevatedButton.styleFrom(

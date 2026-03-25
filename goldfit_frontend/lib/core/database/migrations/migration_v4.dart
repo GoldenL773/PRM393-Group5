@@ -5,7 +5,7 @@ import 'package:goldfit_frontend/core/database/migrations/migration.dart';
 /// Version 4 migration.
 /// Adds time_slot, event_name, and start_time to outfit_calendar table.
 /// Changes the UNIQUE constraint from just assigned_date to (assigned_date, time_slot).
-class MigrationV36 implements Migration {
+class MigrationV4 implements Migration {
   @override
   int get version => 4;
 
